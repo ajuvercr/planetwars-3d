@@ -1,9 +1,15 @@
+
 :root {
-  --fontSize: 10px;
   --grey: #f2f2f2;
   --border: 1px solid #f6f8fa;
   --borderInvalid: 2px solid #ff0000;
   --colorHover: #f3f3f3;
+  --height: 100%;
+}
+
+body, html {
+  padding: 0;
+  margin: 0;
 }
 
 .general {
@@ -58,4 +64,17 @@
 
 .barBaz {
   color: tomato;
+}
+
+.router {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+}
+
+.router>ul {
+  margin: 0;
+  width: 200px;
+  min-height: 100%;
+  background-color: grey;
 }

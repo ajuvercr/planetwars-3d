@@ -25,6 +25,12 @@ module.exports = {
               },
           }
         ]
+      },
+      {
+        test: /\.scss$/,
+        use: [
+          "sass-loader"
+        ]
       }
     ],
   },

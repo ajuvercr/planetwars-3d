@@ -12,14 +12,28 @@ module.exports = {
         use: 'ts-loader',
         exclude: /node_modules/,
       },
+      {
+        test: /\.css$/,
+        use: [
+          "style-loader",
+          "@teamsupercell/typings-for-css-modules-loader",
+          {
+            loader: "css-loader",
+            options: {
+              modules: {
+                localIdentName: '[name]__[local]___[hash:base64:5]',}
+              },
+          }
+        ]
+      }
     ],
   },
   resolve: {
-    extensions: [ '.tsx', '.ts', '.js' ],
+    extensions: ['.tsx', '.ts', '.js', '.css'],
   },
   plugins: [
     new WasmPackPlugin({
-      crateDirectory: __dirname+"/pw", // Define where the root of the rust code is located (where the cargo.toml file is located)
+      crateDirectory: __dirname + "/pw", // Define where the root of the rust code is located (where the cargo.toml file is located)
     }),
   ],
   output: {

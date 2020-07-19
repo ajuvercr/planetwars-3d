@@ -1,0 +1,61 @@
+:root {
+  --fontSize: 10px;
+  --grey: #f2f2f2;
+  --border: 1px solid #f6f8fa;
+  --borderInvalid: 2px solid #ff0000;
+  --colorHover: #f3f3f3;
+}
+
+.general {
+  position: relative;
+  font-size: var(--fontSize);
+  text-transform: capitalize;
+  box-sizing: border-box;
+  margin: 0;
+  border: 0;
+  background: var(--grey);
+}
+
+.component {
+  composes: general;
+  border-right: var(--border);
+  height: 100%;
+}
+
+.component[data-invalid=true] {
+  border-bottom: var(--borderInvalid);
+}
+
+.button {
+  composes: general;
+  cursor: pointer;
+}
+
+.button:hover {
+  color: var(--colorHover);
+}
+
+.button:focus {
+  outline: 0;
+}
+
+.list {
+  composes: general;
+  color: red;
+  list-style: none;
+  padding-left: 0;
+  margin: 10px;
+}
+
+.item {
+  outline: 1px solid red;
+  padding: 10px;
+}
+
+.foo {
+  color: chocolate;
+}
+
+.barBaz {
+  color: tomato;
+}

@@ -12,10 +12,12 @@ pub struct WebGl {
     link: ComponentLink<Self>,
     node_ref: NodeRef,
     render_loop: Option<Box<dyn Task>>,
+    aspect: f32,
 }
 
 pub enum Msg {
     Render(f64),
+    Resize,
 }
 
 impl Component for WebGl {
@@ -29,6 +31,7 @@ impl Component for WebGl {
             link,
             node_ref: NodeRef::default(),
             render_loop: None,
+            aspect: 1.0,
         }
     }
 
@@ -38,6 +41,7 @@ impl Component for WebGl {
         // for making GL calls.
 
         let canvas = self.node_ref.cast::<HtmlCanvasElement>().unwrap();
+
 
         let gl: GL = canvas
             .get_context("webgl")
@@ -54,6 +58,7 @@ impl Component for WebGl {
         // culling etc.
 
         if first_render {
+            self.update(Msg::Resize);
             // The callback to request animation frame is passed a time value which can be used for
             // rendering motion independent of the framerate which may vary.
             let render_frame = self.link.callback(Msg::Render);
@@ -73,14 +78,30 @@ impl Component for WebGl {
                 // case. This also allows for updating other UI elements that may be rendered in
                 // the DOM like a framerate counter, or other overlaid textual elements.
                 self.render_gl(timestamp);
+            },
+            Msg::Resize => {
+                if let Some(ref mut canvas) = &mut self.canvas {
+                    let gl = self.gl.as_ref().expect("GL Context not initialized!");
+
+                    let parent = canvas.parent_element().unwrap();
+                    let w = canvas.client_width();
+                    let h = canvas.client_height();
+                    canvas.set_width(w as u32);
+                    canvas.set_height(h as u32);
+                    gl.viewport(0, 0, w, h);
+
+                    self.aspect = w as f32 / h as f32;
+                    ConsoleService::log(&self.aspect.to_string());
+                }
             }
         }
         false
     }
 
     fn view(&self) -> Html {
+        let resize_f = self.link.callback(move |_| Msg::Resize);
         html! {
-            <canvas ref={self.node_ref.clone()} />
+           <canvas class="nav-body" onresize={resize_f} ref={self.node_ref.clone()} />
         }
     }
 
@@ -98,11 +119,22 @@ impl WebGl {
         let frag_code = include_str!("./basic.frag");
 
         // This list of vertices will draw two triangles to cover the entire canvas.
-        let vertices: Vec<f32> = vec![
-            -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0,
-        ];
+        // let vertices: Vec<f32> = vec![
+        //     -1.0, -1.0,
+        //     1.0, -1.0,
+        //     -1.0, 1.0,
+        //     -1.0, 1.0,
+        //     1.0, -1.0,
+        //     1.0, 1.0,
+        // ];
+
+        // let vertices = gen_generalized_spiral(700.0, 3.6);
+        let vertices = gen_sphere_icosahedral(0);
+        // ConsoleService::log(&format!("{:?}", vertices));
+
         let vertex_buffer = gl.create_buffer().unwrap();
         let verts = js_sys::Float32Array::from(vertices.as_slice());
+        // let verts = unsafe { js_sys::Float32Array::view(vertices.as_slice() )};
 
         gl.bind_buffer(GL::ARRAY_BUFFER, Some(&vertex_buffer));
         gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &verts, GL::STATIC_DRAW);
@@ -124,14 +156,17 @@ impl WebGl {
 
         // Attach the position vector as an attribute for the GL context.
         let position = gl.get_attrib_location(&shader_program, "a_position") as u32;
-        gl.vertex_attrib_pointer_with_i32(position, 2, GL::FLOAT, false, 0, 0);
+        gl.vertex_attrib_pointer_with_i32(position, 3, GL::FLOAT, false, 0, 0);
         gl.enable_vertex_attrib_array(position);
 
         // Attach the time as a uniform for the GL context.
         let time = gl.get_uniform_location(&shader_program, "u_time");
         gl.uniform1f(time.as_ref(), timestamp as f32);
 
-        gl.draw_arrays(GL::TRIANGLES, 0, 6);
+        let u_aspect = gl.get_uniform_location(&shader_program, "u_aspect");
+        gl.uniform1f(u_aspect.as_ref(), self.aspect);
+
+        gl.draw_arrays(GL::TRIANGLES, 0, vertices.len() as i32 / 3);
 
         let render_frame = self.link.callback(Msg::Render);
         let handle = RenderService::request_animation_frame(render_frame);
@@ -139,4 +174,69 @@ impl WebGl {
         // A reference to the new handle must be retained for the next render to run.
         self.render_loop = Some(Box::new(handle));
     }
+}
+
+struct Rect([f32;3], [f32;3], [f32;3], [f32;3]);
+
+pub fn gen_sphere_icosahedral(n: i32) -> Vec<f32> {
+    let rho = 0.5 * ( 1.0 + 5.0_f32.sqrt());
+
+    // let (ptr, ptl, pbr, pbl) = ();
+
+    vec! [
+        0.0, 1.0, rho,
+        0.0, -1.0, rho,
+        rho, 0.0, 1.0,
+
+        rho, 0.0, 1.0,
+        0.0, -1.0, rho,
+        rho, -1.0, 0.0,
+
+        rho, -1.0, 0.0,
+        0.0, -1.0, rho,
+        rho, 1.0, 0.0,
+
+        // rho, 1.0, 0.0,
+        // 0.0, -1.0, rho,
+        // rho, -1.0, 0.0,
+
+
+        // rho, 0.0, -1.0,
+
+
+        // 0.0, -1.0, -rho,
+        // 0.0, 1.0, -rho,
+
+        // -rho, 0.0, 1.0,
+        // -rho, 0.0, -1.0,
+
+        // 1.0, rho, 0.0,
+        // -1.0, rho, 0.0,
+        // -1.0, -rho, 0.0,
+        // 1.0, -rho, 0.0,
+    ]
+}
+
+pub fn gen_generalized_spiral(n: f32, c: f32) -> Vec<f32> {
+    let mut out = Vec::new();
+
+    let mut phi = 0.0;
+    let n_sqrt = c / (n + 1  as f32).sqrt();
+
+    for k in 2..(n as u32) {
+        let k = k as f32;
+
+        let hk = 2.0*(k-1.0) / n -1.0;
+
+        let eta = hk.acos();
+        phi = phi + n_sqrt / (1.0 - hk * hk).sqrt();
+
+        let (eta_sin, eta_cos) = eta.sin_cos();
+        let (phi_sin, phi_cos) = phi.sin_cos();
+        out.push(eta_sin * phi_sin);
+        out.push(eta_cos * phi_sin);
+        out.push(phi_cos);
+    }
+
+    out
 }

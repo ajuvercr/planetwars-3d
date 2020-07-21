@@ -100,8 +100,8 @@ impl Component for Nav {
         };
 
         html! {
-            <div>
-                <div>{ for Tab::iterator().map(|tab| html!{<p onclick={self.link.callback(move |_| Msg::ChangeTab(*tab))}>{tab.to_string()}</p>}) }</div>
+            <div class="nav-container">
+                <div class="nav">{ for Tab::iterator().map(|tab| html!{<p onclick={self.link.callback(move |_| Msg::ChangeTab(*tab))}>{tab.to_string()}</p>}) }</div>
                 {inner}
             </div>
         }

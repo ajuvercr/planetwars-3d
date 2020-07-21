@@ -1,4 +1,3 @@
-node_modules/
-dist/
-pkg/
-*.css.d.ts
+target/
+wasm.js
+wasm_bg.wasm

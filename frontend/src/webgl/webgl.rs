@@ -2,6 +2,7 @@ use wasm_bindgen::JsCast;
 
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
+use yew::services::resize::{ResizeService, WindowDimensions, ResizeTask};
 use yew::services::{RenderService, Task};
 use yew::{html, Component, ComponentLink, Html, NodeRef, ShouldRender};
 use yew::services::ConsoleService;
@@ -13,11 +14,13 @@ pub struct WebGl {
     node_ref: NodeRef,
     render_loop: Option<Box<dyn Task>>,
     aspect: f32,
+
+    resize_task: ResizeTask,
 }
 
 pub enum Msg {
     Render(f64),
-    Resize,
+    Resize(WindowDimensions),
 }
 
 impl Component for WebGl {
@@ -25,6 +28,8 @@ impl Component for WebGl {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let resize_task = ResizeService::new().register(link.callback(|dim| Msg::Resize(dim)));
+        
         Self {
             canvas: None,
             gl: None,
@@ -32,6 +37,8 @@ impl Component for WebGl {
             node_ref: NodeRef::default(),
             render_loop: None,
             aspect: 1.0,
+
+            resize_task,
         }
     }
 
@@ -41,7 +48,6 @@ impl Component for WebGl {
         // for making GL calls.
 
         let canvas = self.node_ref.cast::<HtmlCanvasElement>().unwrap();
-
 
         let gl: GL = canvas
             .get_context("webgl")
@@ -58,7 +64,6 @@ impl Component for WebGl {
         // culling etc.
 
         if first_render {
-            self.update(Msg::Resize);
             // The callback to request animation frame is passed a time value which can be used for
             // rendering motion independent of the framerate which may vary.
             let render_frame = self.link.callback(Msg::Render);
@@ -67,6 +72,14 @@ impl Component for WebGl {
             // A reference to the handle must be stored, otherwise it is dropped and the render won't
             // occur.
             self.render_loop = Some(Box::new(handle));
+        } else {
+            // if self.aspect == 0.0 {
+            //     let parent = self.canvas.as_ref().unwrap().parent_element().unwrap();
+            //     let width = parent.client_width();
+            //     let height = parent.client_height();
+            //     ConsoleService::log(&format!("W: {}, H: {}", width, height));
+            //     self.link.send_message(Msg::Resize(WindowDimensions { width, height }));
+            // }
         }
     }
 
@@ -79,19 +92,15 @@ impl Component for WebGl {
                 // the DOM like a framerate counter, or other overlaid textual elements.
                 self.render_gl(timestamp);
             },
-            Msg::Resize => {
+            Msg::Resize(WindowDimensions { width, height }) => {
                 if let Some(ref mut canvas) = &mut self.canvas {
                     let gl = self.gl.as_ref().expect("GL Context not initialized!");
 
-                    let parent = canvas.parent_element().unwrap();
-                    let w = canvas.client_width();
-                    let h = canvas.client_height();
-                    canvas.set_width(w as u32);
-                    canvas.set_height(h as u32);
-                    gl.viewport(0, 0, w, h);
+                    canvas.set_width(width as u32);
+                    canvas.set_height(height as u32);
+                    gl.viewport(0, 0, width, height);
 
-                    self.aspect = w as f32 / h as f32;
-                    ConsoleService::log(&self.aspect.to_string());
+                    self.aspect = width as f32 / height as f32;
                 }
             }
         }
@@ -99,9 +108,8 @@ impl Component for WebGl {
     }
 
     fn view(&self) -> Html {
-        let resize_f = self.link.callback(move |_| Msg::Resize);
         html! {
-           <canvas class="nav-body" onresize={resize_f} ref={self.node_ref.clone()} />
+           <canvas class="nav-body" ref={self.node_ref.clone()} />
         }
     }
 
@@ -128,8 +136,8 @@ impl WebGl {
         //     1.0, 1.0,
         // ];
 
-        // let vertices = gen_generalized_spiral(700.0, 3.6);
-        let vertices = gen_sphere_icosahedral(0);
+        let vertices = gen_generalized_spiral(700.0, 3.6);
+        // let vertices = gen_sphere_icosahedral(0);
         // ConsoleService::log(&format!("{:?}", vertices));
 
         let vertex_buffer = gl.create_buffer().unwrap();

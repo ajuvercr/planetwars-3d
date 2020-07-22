@@ -18,5 +18,5 @@ void main() {
         0.0, sin(time), cos(time)
     );
     vec3 scale = vec3(u_aspect, 1.0, 1.0);
-    gl_Position = vec4(pos * rot * rot2 * scale * 0.7, 1.0);
+    gl_Position = vec4(pos * rot * rot2 / scale * 0.7, 1.0);
 }

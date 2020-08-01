@@ -1,10 +1,12 @@
+#![feature(pattern)]
+
 use wasm_bindgen::prelude::*;
 use yew::services::storage::{StorageService, Area};
 
 use yew::{html, Component, ComponentLink, Html, ShouldRender};
 use serde::{Serialize, Deserialize};
 
-mod webgl;
+pub mod webgl;
 use webgl::*;
 
 use std::fmt;

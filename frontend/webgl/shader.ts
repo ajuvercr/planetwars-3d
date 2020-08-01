@@ -53,6 +53,7 @@ function createProgram(
     gl.attachShader(program, shader);
   });
   if (opt_attribs) {
+    // This specifies the location of specific attributes, this is not really required
     opt_attribs.forEach(function (attrib, ndx) {
       gl.bindAttribLocation(
         program,

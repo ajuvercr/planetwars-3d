@@ -1,3 +1,7 @@
+node_modules/
 target/
+pkg/
+pw/
+dist/
 wasm.js
 wasm_bg.wasm

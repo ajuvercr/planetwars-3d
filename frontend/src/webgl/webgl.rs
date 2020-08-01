@@ -7,6 +7,40 @@ use yew::services::{RenderService, Task};
 use yew::{html, Component, ComponentLink, Html, NodeRef, ShouldRender};
 use yew::services::ConsoleService;
 
+use std::collections::HashMap;
+
+pub type Point = Vec<f32>;
+
+pub struct Triangulator {
+    idx: Vec<usize>,
+    verts: Vec<f32>,
+
+    cache: HashMap<Point, usize>,
+}
+
+impl Triangulator {
+    pub fn new() -> Self {
+        Triangulator {
+            idx: Vec::new(),
+            verts: Vec::new(),
+
+            cache: HashMap::new(),
+        }
+    }
+
+    pub fn idx(&self) -> &Vec<usize> {
+        &self.idx
+    }
+
+    pub fn verts(&self) -> &Vec<f32> {
+        &self.verts()
+    }
+
+    pub fn add_triangle(&mut self, p1: &Point, p2: &Point, p3: &Point) {
+
+    }
+}
+
 pub struct WebGl {
     canvas: Option<HtmlCanvasElement>,
     gl: Option<GL>,

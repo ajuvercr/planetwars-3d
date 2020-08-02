@@ -1,5 +1,5 @@
-use web_sys::*;
 use web_sys::WebGlRenderingContext as GL;
+use web_sys::*;
 
 use std::collections::HashMap;
 use yew::services::ConsoleService as Console;
@@ -9,26 +9,31 @@ fn load_shader(gl: &GL, shader_source: &str, shader_type: u32) -> Option<web_sys
     gl.shader_source(&shader, shader_source);
     gl.compile_shader(&shader);
 
-    if let Some(last_error) =  gl.get_shader_info_log(&shader) {
-        Console::error(&format!("*** Error compiling shader '{:?}': {}", shader, last_error));
-        gl.delete_shader(Some(&shader));    // Wtf why this option?
+    if let Some(last_error) = gl.get_shader_info_log(&shader) {
+        Console::error(&format!(
+            "*** Error compiling shader '{:?}': {}",
+            shader, last_error
+        ));
+        gl.delete_shader(Some(&shader)); // Wtf why this option?
         return None;
     }
 
     Some(shader)
 }
 
-fn create_program(
-    gl: &GL, 
-    shaders: Vec<web_sys::WebGlShader>,
-) -> Option<web_sys::WebGlProgram> {
+fn create_program(gl: &GL, shaders: Vec<web_sys::WebGlShader>) -> Option<web_sys::WebGlProgram> {
     let program = gl.create_program()?;
-    shaders.iter().for_each(|shader| gl.attach_shader(&program, shader));
-    
+    shaders
+        .iter()
+        .for_each(|shader| gl.attach_shader(&program, shader));
+
     gl.link_program(&program);
-    if let Some(last_error) =  gl.get_program_info_log(&program) {
-        Console::error(&format!("*** Error linking program '{:?}': {}", program, last_error));
-        gl.delete_program(Some(&program));    // Wtf why this option?
+    if let Some(last_error) = gl.get_program_info_log(&program) {
+        Console::error(&format!(
+            "*** Error linking program '{:?}': {}",
+            program, last_error
+        ));
+        gl.delete_program(Some(&program)); // Wtf why this option?
         return None;
     }
     None
@@ -42,7 +47,8 @@ pub struct ShaderFactory {
 impl ShaderFactory {
     pub fn new(frag_source: String, vert_source: String) -> Self {
         Self {
-            frag_source, vert_source
+            frag_source,
+            vert_source,
         }
     }
 
@@ -66,7 +72,12 @@ impl Shader {
         }
     }
 
-    pub fn single(gl: &GL, frag_source: &str, vert_source: &str, context: HashMap<String, &str>) -> Option<Self> {
+    pub fn single(
+        gl: &GL,
+        frag_source: &str,
+        vert_source: &str,
+        context: HashMap<String, &str>,
+    ) -> Option<Self> {
         let mut frag = frag_source.to_string();
         let mut vert = vert_source.to_string();
 
@@ -98,7 +109,8 @@ impl Shader {
             Some(location.clone())
         } else {
             let location = gl.get_uniform_location(&self.shader, name)?;
-            self.uniform_cache.insert(name.to_string(), location.clone());
+            self.uniform_cache
+                .insert(name.to_string(), location.clone());
             Some(location)
         }
     }
@@ -116,7 +128,7 @@ impl Shader {
     pub fn uniform<U: Uniform>(&mut self, gl: &GL, name: &str, uniform: &U) -> Option<()> {
         self.bind(gl);
         let loc = self.get_uniform_location(gl, name)?;
-        
+
         let value = loc.as_f64()?;
 
         if value < 0. {
@@ -138,7 +150,6 @@ impl Shader {
     }
 }
 
-
 /************************************************************************/
 /*             Start super ugly generic code, just uniforms             */
 /************************************************************************/
@@ -148,60 +159,57 @@ pub trait Uniform {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation);
 }
 
-
-pub struct Uniform2fv<A: Deref<Target=[f32]>> {
+pub struct Uniform2fv<A: Deref<Target = [f32]>> {
     data: A,
 }
-impl<A: Deref<Target=[f32]>> Uniform2fv<A> {
+impl<A: Deref<Target = [f32]>> Uniform2fv<A> {
     pub fn new(data: A) -> Self {
         Self { data }
     }
 }
-impl<A: Deref<Target=[f32]>> Uniform for Uniform2fv<A> {
+impl<A: Deref<Target = [f32]>> Uniform for Uniform2fv<A> {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
         gl.uniform2fv_with_f32_array(Some(location), self.data.deref());
     }
 }
 
-
-pub struct Uniform3fv<A: Deref<Target=[f32]>> {
+pub struct Uniform3fv<A: Deref<Target = [f32]>> {
     data: A,
 }
-impl<A: Deref<Target=[f32]>> Uniform3fv<A> {
+impl<A: Deref<Target = [f32]>> Uniform3fv<A> {
     pub fn new(data: A) -> Self {
         Self { data }
     }
 }
-impl<A: Deref<Target=[f32]>> Uniform for Uniform3fv<A> {
+impl<A: Deref<Target = [f32]>> Uniform for Uniform3fv<A> {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
         gl.uniform3fv_with_f32_array(Some(location), self.data.deref());
     }
 }
 
-pub struct Uniformifv<A: Deref<Target=[i32]>> {
+pub struct Uniformifv<A: Deref<Target = [i32]>> {
     data: A,
 }
-impl<A: Deref<Target=[i32]>> Uniformifv<A> {
+impl<A: Deref<Target = [i32]>> Uniformifv<A> {
     pub fn new(data: A) -> Self {
         Self { data }
     }
 }
-impl<A: Deref<Target=[i32]>> Uniform for Uniformifv<A> {
+impl<A: Deref<Target = [i32]>> Uniform for Uniformifv<A> {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
         gl.uniform1iv_with_i32_array(Some(location), self.data.deref());
     }
 }
 
-
 pub struct Uniform4f {
-    x: f32, 
-    y: f32, 
+    x: f32,
+    y: f32,
     z: f32,
     w: f32,
 }
 impl Uniform4f {
     pub fn new(x: f32, y: f32, z: f32, w: f32) -> Self {
-        Self { x, y, z, w}
+        Self { x, y, z, w }
     }
 }
 impl Uniform for Uniform4f {
@@ -210,15 +218,14 @@ impl Uniform for Uniform4f {
     }
 }
 
-
 pub struct Uniform3f {
-    x: f32, 
-    y: f32, 
+    x: f32,
+    y: f32,
     z: f32,
 }
 impl Uniform3f {
     pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z}
+        Self { x, y, z }
     }
 }
 impl Uniform for Uniform3f {
@@ -227,14 +234,13 @@ impl Uniform for Uniform3f {
     }
 }
 
-
 pub struct Uniform2f {
-    x: f32, 
-    y: f32, 
+    x: f32,
+    y: f32,
 }
 impl Uniform2f {
     pub fn new(x: f32, y: f32) -> Self {
-        Self { x, y}
+        Self { x, y }
     }
 }
 impl Uniform for Uniform2f {
@@ -243,13 +249,12 @@ impl Uniform for Uniform2f {
     }
 }
 
-
 pub struct Uniform1f {
-    x: f32, 
+    x: f32,
 }
 impl Uniform1f {
     pub fn new(x: f32) -> Self {
-        Self { x}
+        Self { x }
     }
 }
 impl Uniform for Uniform1f {
@@ -258,9 +263,8 @@ impl Uniform for Uniform1f {
     }
 }
 
-
 pub struct Uniform1i {
-    x: i32, 
+    x: i32,
 }
 impl Uniform1i {
     pub fn new(x: i32) -> Self {
@@ -269,9 +273,9 @@ impl Uniform1i {
 
     pub fn new_bool(x: bool) -> Self {
         if x {
-            Self { x: 1}
+            Self { x: 1 }
         } else {
-            Self { x: 0}
+            Self { x: 0 }
         }
     }
 }
@@ -281,21 +285,23 @@ impl Uniform for Uniform1i {
     }
 }
 
-
-pub struct UniformMat3fv<A: Deref<Target=[f32]>> {
+pub struct UniformMat3fv<A: Deref<Target = [f32]>> {
     data: A,
     transpose: bool,
 }
-impl<A: Deref<Target=[f32]>> UniformMat3fv<A> {
+impl<A: Deref<Target = [f32]>> UniformMat3fv<A> {
     pub fn new(data: A) -> Self {
-        Self { data, transpose: false, }
+        Self {
+            data,
+            transpose: false,
+        }
     }
 
     pub fn new_transpose(data: A, transpose: bool) -> Self {
-        Self {data, transpose, }
+        Self { data, transpose }
     }
 }
-impl<A: Deref<Target=[f32]>> Uniform for UniformMat3fv<A> {
+impl<A: Deref<Target = [f32]>> Uniform for UniformMat3fv<A> {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
         gl.uniform_matrix3fv_with_f32_array(Some(location), self.transpose, self.data.deref());
     }

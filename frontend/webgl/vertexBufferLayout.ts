@@ -105,6 +105,8 @@ export class VertexArray {
     }
 
     /// Undo bind operation
+
+    // I think this is wrong btw
     unbind(gl: WebGLRenderingContext) {
         this.layouts.forEach((layout) => {
             layout.getElements().forEach((_, index) => {

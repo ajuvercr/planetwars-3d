@@ -2,10 +2,10 @@ use wasm_bindgen::JsCast;
 
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
-use yew::services::resize::{ResizeService, WindowDimensions, ResizeTask};
+use yew::services::resize::{ResizeService, ResizeTask, WindowDimensions};
+use yew::services::ConsoleService;
 use yew::services::{RenderService, Task};
 use yew::{html, Component, ComponentLink, Html, NodeRef, ShouldRender};
-use yew::services::ConsoleService;
 
 use std::collections::HashMap;
 
@@ -36,9 +36,7 @@ impl Triangulator {
         &self.verts()
     }
 
-    pub fn add_triangle(&mut self, p1: &Point, p2: &Point, p3: &Point) {
-
-    }
+    pub fn add_triangle(&mut self, p1: &Point, p2: &Point, p3: &Point) {}
 }
 
 pub struct WebGl {
@@ -89,12 +87,10 @@ impl Component for WebGl {
         self.canvas = Some(canvas);
         self.gl = Some(gl);
 
-
         if first_render {
             let render_frame = self.link.callback(Msg::Render);
             let handle = RenderService::request_animation_frame(render_frame);
             self.render_loop = Some(Box::new(handle));
-
 
             // Setup size correctly
             let canvas = self.canvas.as_ref().unwrap();
@@ -115,7 +111,7 @@ impl Component for WebGl {
         match msg {
             Msg::Render(timestamp) => {
                 self.render_gl(timestamp);
-            },
+            }
             Msg::Resize(WindowDimensions { width, height }) => {
                 if let Some(ref mut canvas) = &mut self.canvas {
                     let gl = self.gl.as_ref().expect("GL Context not initialized!");
@@ -150,13 +146,12 @@ impl WebGl {
         let vert_code = include_str!("./basic.vert");
         let frag_code = include_str!("./basic.frag");
 
-
         let vertices = gen_generalized_spiral(700.0, 3.6);
         // let vertices = gen_sphere_icosahedral(0);
 
         let vertex_buffer = gl.create_buffer().unwrap();
         // let verts = js_sys::Float32Array::from(vertices.as_slice());
-        let verts = unsafe { js_sys::Float32Array::view(vertices.as_slice() )};
+        let verts = unsafe { js_sys::Float32Array::view(vertices.as_slice()) };
 
         gl.bind_buffer(GL::ARRAY_BUFFER, Some(&vertex_buffer));
         gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &verts, GL::STATIC_DRAW);
@@ -198,33 +193,22 @@ impl WebGl {
     }
 }
 
-struct Rect([f32;3], [f32;3], [f32;3], [f32;3]);
+struct Rect([f32; 3], [f32; 3], [f32; 3], [f32; 3]);
 
 pub fn gen_sphere_icosahedral(n: i32) -> Vec<f32> {
-    let rho = 0.5 * ( 1.0 + 5.0_f32.sqrt());
+    let rho = 0.5 * (1.0 + 5.0_f32.sqrt());
 
     // let (ptr, ptl, pbr, pbl) = ();
 
-    vec! [
-        0.0, 1.0, rho,
-        0.0, -1.0, rho,
-        rho, 0.0, 1.0,
-
-        rho, 0.0, 1.0,
-        0.0, -1.0, rho,
-        rho, -1.0, 0.0,
-
-        rho, -1.0, 0.0,
-        0.0, -1.0, rho,
-        rho, 1.0, 0.0,
-
+    vec![
+        0.0, 1.0, rho, 0.0, -1.0, rho, rho, 0.0, 1.0, rho, 0.0, 1.0, 0.0, -1.0, rho, rho, -1.0,
+        0.0, rho, -1.0, 0.0, 0.0, -1.0, rho, rho, 1.0,
+        0.0,
         // rho, 1.0, 0.0,
         // 0.0, -1.0, rho,
         // rho, -1.0, 0.0,
 
-
         // rho, 0.0, -1.0,
-
 
         // 0.0, -1.0, -rho,
         // 0.0, 1.0, -rho,
@@ -243,12 +227,12 @@ pub fn gen_generalized_spiral(n: f32, c: f32) -> Vec<f32> {
     let mut out = Vec::new();
 
     let mut phi = 0.0;
-    let n_sqrt = c / (n + 1  as f32).sqrt();
+    let n_sqrt = c / (n + 1 as f32).sqrt();
 
     for k in 2..(n as u32) {
         let k = k as f32;
 
-        let hk = 2.0*(k-1.0) / n -1.0;
+        let hk = 2.0 * (k - 1.0) / n - 1.0;
 
         let eta = hk.acos();
         phi = phi + n_sqrt / (1.0 - hk * hk).sqrt();

@@ -1,10 +1,10 @@
 #![feature(pattern)]
 
 use wasm_bindgen::prelude::*;
-use yew::services::storage::{StorageService, Area};
+use yew::services::storage::{Area, StorageService};
 
+use serde::{Deserialize, Serialize};
 use yew::{html, Component, ComponentLink, Html, ShouldRender};
-use serde::{Serialize, Deserialize};
 
 pub mod webgl;
 use webgl::*;
@@ -94,10 +94,10 @@ impl Component for Nav {
     fn view(&self) -> Html {
         let inner = match self.active_tab {
             Tab::Home => {
-                html!{<p>{"Home page"}</p>}
-            },
+                html! {<p>{"Home page"}</p>}
+            }
             Tab::WebGl => {
-                html!{<WebGl/>}
+                html! {<WebGl/>}
             }
         };
 

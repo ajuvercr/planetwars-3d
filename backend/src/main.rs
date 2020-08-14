@@ -1,10 +1,10 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
 
-
-use std::path::{PathBuf, Path};
 use rocket::response::NamedFile;
+use std::path::{Path, PathBuf};
 
 #[get("/<file..>")]
 fn files(file: PathBuf) -> Option<NamedFile> {
@@ -13,7 +13,7 @@ fn files(file: PathBuf) -> Option<NamedFile> {
 
 #[get("/")]
 fn index() -> Option<NamedFile> {
-    NamedFile::open(Path::new("index.html")).ok()
+    NamedFile::open(Path::new("static/index.html")).ok()
 }
 
 fn main() {

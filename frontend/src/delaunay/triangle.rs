@@ -1,6 +1,6 @@
 use super::{AlmostEqual, VertexType};
 
-#[derive(Clone, Debug, PartialOrd, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Triangle {
     pub a: VertexType,
     pub b: VertexType,
@@ -23,9 +23,9 @@ impl Triangle {
     }
 
     pub fn circum_circle_contains(&self, v: &VertexType) -> bool {
-        let ab = self.a.norm();
-        let cd = self.b.norm();
-        let ef = self.c.norm();
+        let ab = self.a.norm2();
+        let cd = self.b.norm2();
+        let ef = self.c.norm2();
 
         let ax = self.a.x;
         let ay = self.a.y;
@@ -39,11 +39,19 @@ impl Triangle {
         let circum_y = (ab * (cx - bx) + cd * (ax - cx) + ef * (bx - ax))
             / (ay * (cx - bx) + by * (ax - cx) + cy * (bx - ax));
 
-        let circum = VertexType::new(circum_x, circum_y);
-        let circum_radius = self.a.dist(&circum);
+        let circum = VertexType::new(circum_x / 2.0, circum_y / 2.0);
+        let circum_radius = self.a.dist2(&circum);
         let dist = v.dist2(&circum);
 
         dist <= circum_radius
+    }
+}
+
+impl PartialEq for Triangle {
+    fn eq(&self, other: &Self) -> bool {
+        (self.a == other.a || self.a == other.b || self.a == other.c)
+            && (self.b == other.a || self.b == other.b || self.b == other.c)
+            && (self.c == other.a || self.c == other.b || self.c == other.c)
     }
 }
 

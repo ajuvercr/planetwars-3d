@@ -8,5 +8,5 @@ void main() {
     float b = sin(u_time * 0.0007);
 
     gl_FragColor = vec4(r, g, b, 1.0);
-    gl_FragColor = vec4(1.0);
+    // gl_FragColor = vec4(1.0);
 }

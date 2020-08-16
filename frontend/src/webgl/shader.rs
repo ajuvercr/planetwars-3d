@@ -9,11 +9,15 @@ fn load_shader(gl: &GL, shader_source: &str, shader_type: u32) -> Option<web_sys
     gl.shader_source(&shader, shader_source);
     gl.compile_shader(&shader);
 
-    let compiled = gl.get_shader_parameter(&shader, GL::COMPILE_STATUS).as_bool().unwrap();
+    let compiled = gl
+        .get_shader_parameter(&shader, GL::COMPILE_STATUS)
+        .as_bool()
+        .unwrap();
     if !compiled {
         Console::error(&format!(
             "*** Error compiling shader '{:?}': {}",
-            shader_source, gl.get_shader_info_log(&shader).unwrap()
+            shader_source,
+            gl.get_shader_info_log(&shader).unwrap()
         ));
         gl.delete_shader(Some(&shader)); // Wtf why this option?
         return None;
@@ -30,11 +34,15 @@ fn create_program(gl: &GL, shaders: Vec<web_sys::WebGlShader>) -> Option<web_sys
 
     gl.link_program(&program);
 
-    let linked = gl.get_program_parameter(&program, GL::LINK_STATUS).as_bool().unwrap();
+    let linked = gl
+        .get_program_parameter(&program, GL::LINK_STATUS)
+        .as_bool()
+        .unwrap();
     if !linked {
         Console::error(&format!(
             "*** Error linking program '{:?}': {}",
-            program, gl.get_program_info_log(&program).unwrap()
+            program,
+            gl.get_program_info_log(&program).unwrap()
         ));
         gl.delete_program(Some(&program)); // Wtf why this option?
         return None;

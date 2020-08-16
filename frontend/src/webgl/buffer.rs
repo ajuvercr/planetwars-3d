@@ -230,7 +230,9 @@ mod vertex {
 
                 let mut offset = layout.offset;
                 for element in &layout.elements {
-                    let location = shader.get_attrib_location(gl, &element.index).expect("Location error");
+                    let location = shader
+                        .get_attrib_location(gl, &element.index)
+                        .expect("Location error");
                     if location >= 0 {
                         let idx = location as u32;
                         gl.vertex_attrib_pointer_with_i32(

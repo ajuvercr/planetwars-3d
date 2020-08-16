@@ -15,36 +15,6 @@ use yew::services::ConsoleService;
 use yew::services::{RenderService, Task};
 use yew::{html, Component, ComponentLink, Html, NodeRef, ShouldRender};
 
-pub type Point = Vec<f32>;
-
-// pub struct Triangulator {
-//     idx: Vec<usize>,
-//     verts: Vec<f32>,
-
-//     cache: HashMap<Point, usize>,
-// }
-
-// impl Triangulator {
-//     pub fn new() -> Self {
-//         Triangulator {
-//             idx: Vec::new(),
-//             verts: Vec::new(),
-
-//             cache: HashMap::new(),
-//         }
-//     }
-
-//     pub fn idx(&self) -> &Vec<usize> {
-//         &self.idx
-//     }
-
-//     pub fn verts(&self) -> &Vec<f32> {
-//         &self.verts()
-//     }
-
-//     pub fn add_triangle(&mut self, p1: &Point, p2: &Point, p3: &Point) {}
-// }
-
 pub struct WebGl {
     canvas: Option<HtmlCanvasElement>,
     gl: Option<GL>,
@@ -165,7 +135,7 @@ impl WebGl {
 
         let shader = Shader::single(gl, frag_source, vert_source, HashMap::new())?;
 
-        let vertices = gen_triangle_square(5);
+        let vertices = gen_triangle_square(10);
         // let vertices = gen_generalized_spiral(700.0, 3.6);
         let indices: Vec<u16> = (0..vertices.len() / 3).map(|x| x as u16).collect();
         let vertex_buffer = VertexBuffer::vertex_buffer(gl, vertices)?;
@@ -271,20 +241,50 @@ pub fn gen_triangle_square(n: i32) -> Vec<f32> {
     let points: Vec<Vector2<f32>> = (0..n)
         .map(|x| 2.0 * std::f32::consts::PI * (x as f32) / n as f32)
         .map(|i| Vector2::new(i.cos(), i.sin()))
+        .chain(vec![Vector2::new(0.0, 0.0)])
         .collect();
-    // let points = vec![Vector2::new(0.0, 0.0)];
+
+    // for i in 1..points.len() {
+    //     out.push(points[i-1].x);
+    //     out.push(points[i-1].y);
+    //     out.push(0.0);
+
+    //     out.push(points[i].x);
+    //     out.push(points[i].y);
+    //     out.push(0.0);
+
+    //     out.push(0.0);
+    //     out.push(0.0);
+    //     out.push(0.0);
+    // }
+
+    // out.push(points.last().unwrap().x);
+    // out.push(points.last().unwrap().y);
+    // out.push(0.0);
+
+    // out.push(points[0].x);
+    // out.push(points[0].y);
+    // out.push(0.0);
+
+    // out.push(0.0);
+    // out.push(0.0);
+    // out.push(0.0);
+
+    // return out;
 
     let denauy = Delaunay::triangulate(points);
-
     for p in denauy.triangles() {
         out.push(p.a.x);
         out.push(p.a.y);
+        out.push(0.0);
 
-        out.push(p.b.y);
         out.push(p.b.x);
+        out.push(p.b.y);
+        out.push(0.0);
 
         out.push(p.c.x);
         out.push(p.c.y);
+        out.push(0.0);
     }
 
     out

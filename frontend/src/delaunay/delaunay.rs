@@ -64,9 +64,9 @@ impl Delaunay {
         let mid_x = (min_x + max_x) / 2.0;
         let mid_y = (min_y + max_y) / 2.0;
 
-        let p1 = VertexType::new(mid_x - 20.0 * delta_max, mid_y - delta_max);
+        let p1 = VertexType::new(mid_x - 20.0 * delta_max, mid_y - 20.0 * delta_max);
         let p2 = VertexType::new(mid_x, mid_y + 20.0 * delta_max);
-        let p3 = VertexType::new(mid_x + 20.0 * delta_max, mid_y - delta_max);
+        let p3 = VertexType::new(mid_x + 20.0 * delta_max, mid_y - 20.0 * delta_max);
 
         triangles.push(Triangle::new(p1, p2, p3));
 
@@ -93,15 +93,10 @@ impl Delaunay {
                 }
             }
 
-            polygon = polygon.into_iter().filter(|t| !t.is_bad).collect();
-
-            for Edge {
-                v,
-                w,
-                is_bad: _is_bad,
-            } in polygon
-            {
-                triangles.push(Triangle::new(v, w, p.clone()));
+            for Edge { v, w, is_bad } in polygon {
+                if !is_bad {
+                    triangles.push(Triangle::new(v, w, p.clone()));
+                }
             }
         }
 

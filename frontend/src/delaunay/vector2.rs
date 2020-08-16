@@ -1,6 +1,6 @@
 use super::AlmostEqual;
 
-#[derive(Clone, Debug, PartialOrd, PartialEq, Copy)]
+#[derive(Clone, Debug, Copy)]
 pub struct Vector2<T> {
     pub x: T,
     pub y: T,
@@ -9,6 +9,12 @@ pub struct Vector2<T> {
 impl<T> Vector2<T> {
     pub fn new(x: T, y: T) -> Self {
         Self { x, y }
+    }
+}
+
+impl<T: PartialEq> PartialEq for Vector2<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
     }
 }
 
@@ -22,7 +28,7 @@ impl<
         dx * dx + dy * dy
     }
 
-    pub fn norm(&self) -> T {
+    pub fn norm2(&self) -> T {
         self.x * self.x + self.y * self.y
     }
 }

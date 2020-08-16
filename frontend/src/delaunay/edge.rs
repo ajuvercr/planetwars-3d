@@ -1,6 +1,6 @@
 use super::{AlmostEqual, VertexType};
 
-#[derive(Clone, Debug, PartialOrd, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Edge {
     pub v: VertexType,
     pub w: VertexType,
@@ -20,5 +20,11 @@ impl Edge {
 impl AlmostEqual for Edge {
     fn almost_equal(&self, b: &Self) -> bool {
         self.v.almost_equal(&b.v) && self.w.almost_equal(&b.w)
+    }
+}
+
+impl PartialEq for Edge {
+    fn eq(&self, other: &Self) -> bool {
+        (self.v == other.v || self.v == other.w) && (self.w == other.v || self.w == other.v)
     }
 }

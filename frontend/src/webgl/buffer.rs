@@ -133,6 +133,7 @@ pub use vertex::{VertexArray, VertexBufferLayout};
 mod vertex {
     use crate::Shader;
     use web_sys::WebGlRenderingContext as GL;
+    use yew::services::ConsoleService;
 
     use super::{BufferTrait, VertexBuffer};
 
@@ -229,20 +230,20 @@ mod vertex {
 
                 let mut offset = layout.offset;
                 for element in &layout.elements {
-                    let location = shader.get_attrib_location(gl, &element.index);
-                    if let Some(location) = location {
-                        if location >= 0 {
-                            let idx = location as u32;
-                            gl.enable_vertex_attrib_array(idx);
-                            gl.vertex_attrib_pointer_with_i32(
-                                idx,
-                                element.amount,
-                                element.type_,
-                                element.normalized,
-                                layout.stride,
-                                offset,
-                            );
-                        }
+                    let location = shader.get_attrib_location(gl, &element.index).expect("Location error");
+                    if location >= 0 {
+                        let idx = location as u32;
+                        gl.vertex_attrib_pointer_with_i32(
+                            idx,
+                            element.amount,
+                            element.type_,
+                            element.normalized,
+                            layout.stride,
+                            offset,
+                        );
+                        gl.enable_vertex_attrib_array(idx);
+                    } else {
+                        ConsoleService::error(&format!("Location {} not found", element.index));
                     }
 
                     offset += element.amount * element.type_size;

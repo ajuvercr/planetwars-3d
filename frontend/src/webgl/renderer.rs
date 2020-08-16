@@ -57,12 +57,15 @@ impl Renderable for DefaultRenderable {
                     ConsoleService::log(&format!("Setting uniform {} {:?}", name, uniform));
                 }
 
-                let _ = self.shader.uniform(gl, &name, &uniform);
+                if self.shader.uniform(gl, &name, &uniform).is_none() {
+                    ConsoleService::error(&format!("Failed etting uniform {} {:?}", name, uniform));
+                }
             }
         }
 
         self.vao.bind(gl, &mut self.shader);
         self.ibo.bind(gl);
+
         gl.draw_elements_with_i32(
             GL::TRIANGLES,
             self.ibo.get_count() as i32,

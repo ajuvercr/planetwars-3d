@@ -165,6 +165,16 @@ impl WebGl {
         let shader = Shader::single(gl, frag_source, vert_source, HashMap::new())?;
 
         let vertices = gen_generalized_spiral(700.0, 3.6);
+        // let vertices = vec![
+        //     0.5, -0.5, 0.0,
+        //     0.5, 0.5, 0.0,
+        //     -0.5, -0.5, 0.0,
+
+        //     0.5, 0.5, 0.0,
+        //     -0.5, -0.5, 0.0,
+        //     -0.5, 0.5, 0.0,
+        // ];
+
         let indices: Vec<u16> = (0..vertices.len() / 3).map(|x| x as u16).collect();
         let vertex_buffer = VertexBuffer::vertex_buffer(gl, vertices)?;
         let index_buffer = IndexBuffer::index_buffer(gl, indices)?;

@@ -9,13 +9,14 @@ fn load_shader(gl: &GL, shader_source: &str, shader_type: u32) -> Option<web_sys
     gl.shader_source(&shader, shader_source);
     gl.compile_shader(&shader);
 
-    if let Some(last_error) = gl.get_shader_info_log(&shader) {
+    let compiled = gl.get_shader_parameter(&shader, GL::COMPILE_STATUS).as_bool().unwrap();
+    if !compiled {
         Console::error(&format!(
             "*** Error compiling shader '{:?}': {}",
-            shader_source, last_error
+            shader_source, gl.get_shader_info_log(&shader).unwrap()
         ));
-        // gl.delete_shader(Some(&shader)); // Wtf why this option?
-        // return None;
+        gl.delete_shader(Some(&shader)); // Wtf why this option?
+        return None;
     }
 
     Some(shader)
@@ -28,13 +29,15 @@ fn create_program(gl: &GL, shaders: Vec<web_sys::WebGlShader>) -> Option<web_sys
         .for_each(|shader| gl.attach_shader(&program, shader));
 
     gl.link_program(&program);
-    if let Some(last_error) = gl.get_program_info_log(&program) {
+
+    let linked = gl.get_program_parameter(&program, GL::LINK_STATUS).as_bool().unwrap();
+    if !linked {
         Console::error(&format!(
             "*** Error linking program '{:?}': {}",
-            program, last_error
+            program, gl.get_program_info_log(&program).unwrap()
         ));
-        // gl.delete_program(Some(&program)); // Wtf why this option?
-        // return None;
+        gl.delete_program(Some(&program)); // Wtf why this option?
+        return None;
     }
 
     Some(program)
@@ -129,14 +132,6 @@ impl Shader {
     pub fn uniform(&mut self, gl: &GL, name: &str, uniform: &Box<dyn Uniform>) -> Option<()> {
         self.bind(gl);
         let loc = self.get_uniform_location(gl, name)?;
-
-        let value = loc.as_f64()?;
-
-        if value < 0. {
-            Console::error(&format!("No uniform location found with name {}", name));
-            return None;
-        }
-
         uniform.set_uniform(gl, &loc);
         Some(())
     }
@@ -256,7 +251,6 @@ impl Uniform for Uniform2f {
     }
 }
 #[derive(Debug)]
-
 pub struct Uniform1f {
     x: f32,
 }

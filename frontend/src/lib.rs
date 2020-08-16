@@ -9,6 +9,8 @@ use yew::{html, Component, ComponentLink, Html, ShouldRender};
 pub mod webgl;
 use webgl::*;
 
+pub mod delaunay;
+
 use std::fmt;
 use std::slice::Iter;
 

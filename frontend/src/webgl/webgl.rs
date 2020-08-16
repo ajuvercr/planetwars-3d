@@ -6,6 +6,7 @@ use super::{
     shader::Uniform1f,
     Shader,
 };
+use crate::delaunay::{Delaunay, Vector2};
 use std::collections::HashMap;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
@@ -164,17 +165,8 @@ impl WebGl {
 
         let shader = Shader::single(gl, frag_source, vert_source, HashMap::new())?;
 
-        let vertices = gen_generalized_spiral(700.0, 3.6);
-        // let vertices = vec![
-        //     0.5, -0.5, 0.0,
-        //     0.5, 0.5, 0.0,
-        //     -0.5, -0.5, 0.0,
-
-        //     0.5, 0.5, 0.0,
-        //     -0.5, -0.5, 0.0,
-        //     -0.5, 0.5, 0.0,
-        // ];
-
+        let vertices = gen_triangle_square(5);
+        // let vertices = gen_generalized_spiral(700.0, 3.6);
         let indices: Vec<u16> = (0..vertices.len() / 3).map(|x| x as u16).collect();
         let vertex_buffer = VertexBuffer::vertex_buffer(gl, vertices)?;
         let index_buffer = IndexBuffer::index_buffer(gl, indices)?;
@@ -222,7 +214,7 @@ impl WebGl {
 
 // struct Rect([f32; 3], [f32; 3], [f32; 3], [f32; 3]);
 
-pub fn gen_sphere_icosahedral(n: i32) -> Vec<f32> {
+pub fn gen_sphere_icosahedral(_n: i32) -> Vec<f32> {
     let rho = 0.5 * (1.0 + 5.0_f32.sqrt());
 
     // let (ptr, ptl, pbr, pbl) = ();
@@ -269,6 +261,30 @@ pub fn gen_generalized_spiral(n: f32, c: f32) -> Vec<f32> {
         out.push(eta_sin * phi_sin);
         out.push(eta_cos * phi_sin);
         out.push(phi_cos);
+    }
+
+    out
+}
+
+pub fn gen_triangle_square(n: i32) -> Vec<f32> {
+    let mut out = Vec::new();
+    let points: Vec<Vector2<f32>> = (0..n)
+        .map(|x| 2.0 * std::f32::consts::PI * (x as f32) / n as f32)
+        .map(|i| Vector2::new(i.cos(), i.sin()))
+        .collect();
+    // let points = vec![Vector2::new(0.0, 0.0)];
+
+    let denauy = Delaunay::triangulate(points);
+
+    for p in denauy.triangles() {
+        out.push(p.a.x);
+        out.push(p.a.y);
+
+        out.push(p.b.y);
+        out.push(p.b.x);
+
+        out.push(p.c.x);
+        out.push(p.c.y);
     }
 
     out

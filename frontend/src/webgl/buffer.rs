@@ -12,11 +12,26 @@ mod buffer {
         fn get_count(&self) -> usize;
     }
 
+    #[derive(Debug)]
     pub struct Buffer<T, A: Deref<Target = [T]>> {
         buffer: WebGlBuffer,
         data: Option<A>,
         count: usize,
         target: u32,
+    }
+
+    impl VertexBuffer {
+        #[inline]
+        pub fn vertex_buffer<D: Into<Option<Vec<f32>>>>(gl: &GL, data: D) -> Option<Self> {
+            Buffer::<f32, Vec<f32>>::new(gl, data.into(), GL::ARRAY_BUFFER)
+        }
+    }
+
+    impl IndexBuffer {
+        #[inline]
+        pub fn index_buffer<D: Into<Option<Vec<u16>>>>(gl: &GL, data: D) -> Option<Self> {
+            Buffer::<u16, Vec<u16>>::new(gl, data.into(), GL::ELEMENT_ARRAY_BUFFER)
+        }
     }
 
     impl<A: Deref<Target = [f32]>> Buffer<f32, A> {
@@ -121,6 +136,7 @@ mod vertex {
 
     use super::{BufferTrait, VertexBuffer};
 
+    #[derive(Debug)]
     struct VertexBufferElement {
         type_: u32,
         amount: i32,
@@ -141,6 +157,8 @@ mod vertex {
         }
     }
 
+    #[derive(Debug)]
+
     pub struct VertexBufferLayout {
         elements: Vec<VertexBufferElement>,
         stride: i32,
@@ -160,27 +178,33 @@ mod vertex {
             self.offset = offset;
         }
 
-        pub fn push(
+        pub fn push<S: Into<String>>(
             &mut self,
             type_: u32,
             amount: i32,
             type_size: i32,
-            index: String,
+            index: S,
             normalized: bool,
         ) {
             self.elements.push(VertexBufferElement::new(
-                type_, amount, type_size, index, normalized,
+                type_,
+                amount,
+                type_size,
+                index.into(),
+                normalized,
             ));
             self.stride += amount * type_size;
         }
     }
 
+    #[derive(Debug)]
     pub struct VertexArray {
         buffers: Vec<VertexBuffer>,
         layouts: Vec<VertexBufferLayout>,
     }
 
     impl VertexArray {
+        #[inline]
         pub fn new() -> Self {
             Self {
                 buffers: Vec::new(),

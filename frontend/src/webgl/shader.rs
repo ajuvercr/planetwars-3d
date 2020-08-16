@@ -12,10 +12,10 @@ fn load_shader(gl: &GL, shader_source: &str, shader_type: u32) -> Option<web_sys
     if let Some(last_error) = gl.get_shader_info_log(&shader) {
         Console::error(&format!(
             "*** Error compiling shader '{:?}': {}",
-            shader, last_error
+            shader_source, last_error
         ));
-        gl.delete_shader(Some(&shader)); // Wtf why this option?
-        return None;
+        // gl.delete_shader(Some(&shader)); // Wtf why this option?
+        // return None;
     }
 
     Some(shader)
@@ -33,10 +33,11 @@ fn create_program(gl: &GL, shaders: Vec<web_sys::WebGlShader>) -> Option<web_sys
             "*** Error linking program '{:?}': {}",
             program, last_error
         ));
-        gl.delete_program(Some(&program)); // Wtf why this option?
-        return None;
+        // gl.delete_program(Some(&program)); // Wtf why this option?
+        // return None;
     }
-    None
+
+    Some(program)
 }
 
 pub struct ShaderFactory {
@@ -125,7 +126,7 @@ impl Shader {
         }
     }
 
-    pub fn uniform<U: Uniform>(&mut self, gl: &GL, name: &str, uniform: &U) -> Option<()> {
+    pub fn uniform(&mut self, gl: &GL, name: &str, uniform: &Box<dyn Uniform>) -> Option<()> {
         self.bind(gl);
         let loc = self.get_uniform_location(gl, name)?;
 
@@ -154,11 +155,12 @@ impl Shader {
 /*             Start super ugly generic code, just uniforms             */
 /************************************************************************/
 
-use std::ops::Deref;
-pub trait Uniform {
+use std::{fmt::Debug, ops::Deref};
+pub trait Uniform: Debug {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation);
 }
 
+#[derive(Debug)]
 pub struct Uniform2fv<A: Deref<Target = [f32]>> {
     data: A,
 }
@@ -167,12 +169,13 @@ impl<A: Deref<Target = [f32]>> Uniform2fv<A> {
         Self { data }
     }
 }
-impl<A: Deref<Target = [f32]>> Uniform for Uniform2fv<A> {
+impl<A: Deref<Target = [f32]> + Debug> Uniform for Uniform2fv<A> {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
         gl.uniform2fv_with_f32_array(Some(location), self.data.deref());
     }
 }
 
+#[derive(Debug)]
 pub struct Uniform3fv<A: Deref<Target = [f32]>> {
     data: A,
 }
@@ -181,11 +184,12 @@ impl<A: Deref<Target = [f32]>> Uniform3fv<A> {
         Self { data }
     }
 }
-impl<A: Deref<Target = [f32]>> Uniform for Uniform3fv<A> {
+impl<A: Deref<Target = [f32]> + Debug> Uniform for Uniform3fv<A> {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
         gl.uniform3fv_with_f32_array(Some(location), self.data.deref());
     }
 }
+#[derive(Debug)]
 
 pub struct Uniformifv<A: Deref<Target = [i32]>> {
     data: A,
@@ -195,12 +199,13 @@ impl<A: Deref<Target = [i32]>> Uniformifv<A> {
         Self { data }
     }
 }
-impl<A: Deref<Target = [i32]>> Uniform for Uniformifv<A> {
+impl<A: Deref<Target = [i32]> + Debug> Uniform for Uniformifv<A> {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
         gl.uniform1iv_with_i32_array(Some(location), self.data.deref());
     }
 }
 
+#[derive(Debug)]
 pub struct Uniform4f {
     x: f32,
     y: f32,
@@ -218,6 +223,7 @@ impl Uniform for Uniform4f {
     }
 }
 
+#[derive(Debug)]
 pub struct Uniform3f {
     x: f32,
     y: f32,
@@ -234,6 +240,7 @@ impl Uniform for Uniform3f {
     }
 }
 
+#[derive(Debug)]
 pub struct Uniform2f {
     x: f32,
     y: f32,
@@ -248,6 +255,7 @@ impl Uniform for Uniform2f {
         gl.uniform2f(Some(location), self.x, self.y);
     }
 }
+#[derive(Debug)]
 
 pub struct Uniform1f {
     x: f32,
@@ -263,6 +271,7 @@ impl Uniform for Uniform1f {
     }
 }
 
+#[derive(Debug)]
 pub struct Uniform1i {
     x: i32,
 }
@@ -285,6 +294,7 @@ impl Uniform for Uniform1i {
     }
 }
 
+#[derive(Debug)]
 pub struct UniformMat3fv<A: Deref<Target = [f32]>> {
     data: A,
     transpose: bool,
@@ -301,7 +311,7 @@ impl<A: Deref<Target = [f32]>> UniformMat3fv<A> {
         Self { data, transpose }
     }
 }
-impl<A: Deref<Target = [f32]>> Uniform for UniformMat3fv<A> {
+impl<A: Deref<Target = [f32]> + Debug> Uniform for UniformMat3fv<A> {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
         gl.uniform_matrix3fv_with_f32_array(Some(location), self.transpose, self.data.deref());
     }

@@ -1,5 +1,12 @@
 use wasm_bindgen::JsCast;
 
+use super::{
+    buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout},
+    renderer::Renderer,
+    shader::Uniform1f,
+    Shader,
+};
+use std::collections::HashMap;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
 use yew::services::resize::{ResizeService, ResizeTask, WindowDimensions};
@@ -7,37 +14,35 @@ use yew::services::ConsoleService;
 use yew::services::{RenderService, Task};
 use yew::{html, Component, ComponentLink, Html, NodeRef, ShouldRender};
 
-use std::collections::HashMap;
-
 pub type Point = Vec<f32>;
 
-pub struct Triangulator {
-    idx: Vec<usize>,
-    verts: Vec<f32>,
+// pub struct Triangulator {
+//     idx: Vec<usize>,
+//     verts: Vec<f32>,
 
-    cache: HashMap<Point, usize>,
-}
+//     cache: HashMap<Point, usize>,
+// }
 
-impl Triangulator {
-    pub fn new() -> Self {
-        Triangulator {
-            idx: Vec::new(),
-            verts: Vec::new(),
+// impl Triangulator {
+//     pub fn new() -> Self {
+//         Triangulator {
+//             idx: Vec::new(),
+//             verts: Vec::new(),
 
-            cache: HashMap::new(),
-        }
-    }
+//             cache: HashMap::new(),
+//         }
+//     }
 
-    pub fn idx(&self) -> &Vec<usize> {
-        &self.idx
-    }
+//     pub fn idx(&self) -> &Vec<usize> {
+//         &self.idx
+//     }
 
-    pub fn verts(&self) -> &Vec<f32> {
-        &self.verts()
-    }
+//     pub fn verts(&self) -> &Vec<f32> {
+//         &self.verts()
+//     }
 
-    pub fn add_triangle(&mut self, p1: &Point, p2: &Point, p3: &Point) {}
-}
+//     pub fn add_triangle(&mut self, p1: &Point, p2: &Point, p3: &Point) {}
+// }
 
 pub struct WebGl {
     canvas: Option<HtmlCanvasElement>,
@@ -46,6 +51,9 @@ pub struct WebGl {
     node_ref: NodeRef,
     render_loop: Option<Box<dyn Task>>,
     aspect: f32,
+
+    renderer: Renderer,
+    sphere_index: usize,
 
     _resize_task: ResizeTask,
 }
@@ -70,6 +78,8 @@ impl Component for WebGl {
             render_loop: None,
             aspect: 1.0,
 
+            renderer: Renderer::new(),
+            sphere_index: 0,
             _resize_task,
         }
     }
@@ -92,18 +102,24 @@ impl Component for WebGl {
             let handle = RenderService::request_animation_frame(render_frame);
             self.render_loop = Some(Box::new(handle));
 
-            // Setup size correctly
-            let canvas = self.canvas.as_ref().unwrap();
-            let gl = self.gl.as_ref().expect("GL Context not initialized!");
+            {
+                // Setup size correctly
+                let canvas = self.canvas.as_ref().unwrap();
+                let gl = self.gl.as_ref().expect("GL Context not initialized!");
 
-            let width = canvas.parent_element().unwrap().client_width();
-            let height = canvas.parent_element().unwrap().client_height();
+                let width = canvas.parent_element().unwrap().client_width();
+                let height = canvas.parent_element().unwrap().client_height();
 
-            canvas.set_width(width as u32);
-            canvas.set_height(height as u32);
-            gl.viewport(0, 0, width, height);
+                canvas.set_width(width as u32);
+                canvas.set_height(height as u32);
+                gl.viewport(0, 0, width, height);
 
-            self.aspect = width as f32 / height as f32;
+                self.aspect = width as f32 / height as f32;
+            }
+
+            if self.init_renderer().is_none() {
+                ConsoleService::error("init_renderer returned None");
+            };
         }
     }
 
@@ -140,50 +156,51 @@ impl Component for WebGl {
 }
 
 impl WebGl {
+    fn init_renderer(&mut self) -> Option<()> {
+        let gl = self.gl.as_ref().expect("GL Context not initialized!");
+
+        let vert_source = include_str!("./basic.vert");
+        let frag_source = include_str!("./basic.frag");
+
+        let shader = Shader::single(gl, frag_source, vert_source, HashMap::new())?;
+
+        let vertices = gen_generalized_spiral(700.0, 3.6);
+        let indices: Vec<u16> = (0..vertices.len() / 3).map(|x| x as u16).collect();
+        let vertex_buffer = VertexBuffer::vertex_buffer(gl, vertices)?;
+        let index_buffer = IndexBuffer::index_buffer(gl, indices)?;
+
+        let mut layout = VertexBufferLayout::new();
+        layout.push(GL::FLOAT, 3, 4, "a_position", false);
+
+        let mut vao = VertexArray::new();
+        vao.add_buffer(vertex_buffer, layout);
+
+        self.sphere_index = self
+            .renderer
+            .add_to_draw(index_buffer, vao, shader, None, 0);
+
+        Some(())
+    }
+
     fn render_gl(&mut self, timestamp: f64) {
         let gl = self.gl.as_ref().expect("GL Context not initialized!");
 
-        let vert_code = include_str!("./basic.vert");
-        let frag_code = include_str!("./basic.frag");
+        let aspect = self.aspect;
+        self.renderer.update_uniforms(self.sphere_index, 0, |c| {
+            if c.is_none() {
+                *c = Some(HashMap::new());
+            }
 
-        let vertices = gen_generalized_spiral(700.0, 3.6);
-        // let vertices = gen_sphere_icosahedral(0);
+            let context = c.as_mut().unwrap();
+            context.insert(
+                "u_time".to_string(),
+                Box::new(Uniform1f::new(timestamp as f32)),
+            );
 
-        let vertex_buffer = gl.create_buffer().unwrap();
-        // let verts = js_sys::Float32Array::from(vertices.as_slice());
-        let verts = unsafe { js_sys::Float32Array::view(vertices.as_slice()) };
+            context.insert("u_aspect".to_string(), Box::new(Uniform1f::new(aspect)));
+        });
 
-        gl.bind_buffer(GL::ARRAY_BUFFER, Some(&vertex_buffer));
-        gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &verts, GL::STATIC_DRAW);
-
-        let vert_shader = gl.create_shader(GL::VERTEX_SHADER).unwrap();
-        gl.shader_source(&vert_shader, &vert_code);
-        gl.compile_shader(&vert_shader);
-
-        let frag_shader = gl.create_shader(GL::FRAGMENT_SHADER).unwrap();
-        gl.shader_source(&frag_shader, &frag_code);
-        gl.compile_shader(&frag_shader);
-
-        let shader_program = gl.create_program().unwrap();
-        gl.attach_shader(&shader_program, &vert_shader);
-        gl.attach_shader(&shader_program, &frag_shader);
-        gl.link_program(&shader_program);
-
-        gl.use_program(Some(&shader_program));
-
-        // Attach the position vector as an attribute for the GL context.
-        let position = gl.get_attrib_location(&shader_program, "a_position") as u32;
-        gl.vertex_attrib_pointer_with_i32(position, 3, GL::FLOAT, false, 0, 0);
-        gl.enable_vertex_attrib_array(position);
-
-        // Attach the time as a uniform for the GL context.
-        let time = gl.get_uniform_location(&shader_program, "u_time");
-        gl.uniform1f(time.as_ref(), timestamp as f32);
-
-        let u_aspect = gl.get_uniform_location(&shader_program, "u_aspect");
-        gl.uniform1f(u_aspect.as_ref(), self.aspect);
-
-        gl.draw_arrays(GL::TRIANGLES, 0, vertices.len() as i32 / 3);
+        self.renderer.render(gl);
 
         let render_frame = self.link.callback(Msg::Render);
         let handle = RenderService::request_animation_frame(render_frame);
@@ -193,7 +210,7 @@ impl WebGl {
     }
 }
 
-struct Rect([f32; 3], [f32; 3], [f32; 3], [f32; 3]);
+// struct Rect([f32; 3], [f32; 3], [f32; 3], [f32; 3]);
 
 pub fn gen_sphere_icosahedral(n: i32) -> Vec<f32> {
     let rho = 0.5 * (1.0 + 5.0_f32.sqrt());

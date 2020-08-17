@@ -6,7 +6,7 @@ use super::{
     shader::Uniform1f,
     Shader,
 };
-use crate::delaunay::{Delaunay, Vector2};
+use crate::delaunay::Delaunay;
 use std::collections::HashMap;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
@@ -135,9 +135,7 @@ impl WebGl {
 
         let shader = Shader::single(gl, frag_source, vert_source, HashMap::new())?;
 
-        let vertices = gen_triangle_square(10);
-        // let vertices = gen_generalized_spiral(700.0, 3.6);
-        let indices: Vec<u16> = (0..vertices.len() / 3).map(|x| x as u16).collect();
+        let (vertices, indices) = gen_triangle_square(10);
         let vertex_buffer = VertexBuffer::vertex_buffer(gl, vertices)?;
         let index_buffer = IndexBuffer::index_buffer(gl, indices)?;
 
@@ -236,56 +234,29 @@ pub fn gen_generalized_spiral(n: f32, c: f32) -> Vec<f32> {
     out
 }
 
-pub fn gen_triangle_square(n: i32) -> Vec<f32> {
+pub fn gen_triangle_square(n: i32) -> (Vec<f32>, Vec<u16>) {
     let mut out = Vec::new();
-    let points: Vec<Vector2<f32>> = (0..n)
+    let points: Vec<[f32; 2]> = (0..n)
         .map(|x| 2.0 * std::f32::consts::PI * (x as f32) / n as f32)
-        .map(|i| Vector2::new(i.cos(), i.sin()))
-        .chain(vec![Vector2::new(0.0, 0.0)])
+        .map(|i| [i.cos(), i.sin()])
+        .chain(vec![[0.0, 0.0]])
         .collect();
 
-    // for i in 1..points.len() {
-    //     out.push(points[i-1].x);
-    //     out.push(points[i-1].y);
-    //     out.push(0.0);
-
-    //     out.push(points[i].x);
-    //     out.push(points[i].y);
-    //     out.push(0.0);
-
-    //     out.push(0.0);
-    //     out.push(0.0);
-    //     out.push(0.0);
-    // }
-
-    // out.push(points.last().unwrap().x);
-    // out.push(points.last().unwrap().y);
-    // out.push(0.0);
-
-    // out.push(points[0].x);
-    // out.push(points[0].y);
-    // out.push(0.0);
-
-    // out.push(0.0);
-    // out.push(0.0);
-    // out.push(0.0);
-
-    // return out;
-
-    let denauy = Delaunay::triangulate(points);
-    for p in denauy.triangles() {
-        out.push(p.a.x);
-        out.push(p.a.y);
-        out.push(0.0);
-
-        out.push(p.b.x);
-        out.push(p.b.y);
-        out.push(0.0);
-
-        out.push(p.c.x);
-        out.push(p.c.y);
+    for p in &points {
+        out.push(p[0]);
+        out.push(p[1]);
         out.push(0.0);
     }
 
-    out
+    let denauy = Delaunay::triangulate(&points);
+
+    let mut idxs = Vec::new();
+
+    for p in denauy.triangles() {
+        idxs.push(p.a as u16);
+        idxs.push(p.b as u16);
+        idxs.push(p.c as u16);
+    }
+
+    (out, idxs)
 }

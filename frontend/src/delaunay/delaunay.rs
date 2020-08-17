@@ -1,4 +1,4 @@
-use super::{AlmostEqual, Edge, EdgeType, Triangle, TriangleType, VertexType};
+use super::{Edge, EdgeType, Triangle, TriangleType, VertexType};
 
 pub struct Delaunay {
     triangles: Vec<TriangleType>,
@@ -30,28 +30,29 @@ impl Delaunay {
         &self.vertices
     }
 
-    pub fn triangulate(vertices: Vec<VertexType>) -> Self {
+    pub fn triangulate(vertices: &Vec<VertexType>) -> Self {
+        let mut vertices = vertices.clone();
         let mut triangles = Vec::new();
         let mut edges = Vec::new();
 
         let (min_x, min_y, max_x, max_y) = {
-            let mut min_x = vertices[0].x;
-            let mut min_y = vertices[0].y;
+            let mut min_x = vertices[0][0];
+            let mut min_y = vertices[0][1];
             let mut max_x = min_x;
             let mut max_y = min_y;
 
             for v in &vertices {
-                if v.x < min_x {
-                    min_x = v.x;
+                if v[0] < min_x {
+                    min_x = v[0];
                 }
-                if v.y < min_y {
-                    min_y = v.y;
+                if v[1] < min_y {
+                    min_y = v[1];
                 }
-                if v.x > max_x {
-                    max_x = v.x;
+                if v[0] > max_x {
+                    max_x = v[0];
                 }
-                if v.y > max_y {
-                    max_y = v.y;
+                if v[1] > max_y {
+                    max_y = v[1];
                 }
             }
 
@@ -64,17 +65,26 @@ impl Delaunay {
         let mid_x = (min_x + max_x) / 2.0;
         let mid_y = (min_y + max_y) / 2.0;
 
-        let p1 = VertexType::new(mid_x - 20.0 * delta_max, mid_y - 20.0 * delta_max);
-        let p2 = VertexType::new(mid_x, mid_y + 20.0 * delta_max);
-        let p3 = VertexType::new(mid_x + 20.0 * delta_max, mid_y - 20.0 * delta_max);
+        let p1 = [mid_x - 20.0 * delta_max, mid_y - 20.0 * delta_max];
+        let p2 = [mid_x, mid_y + 20.0 * delta_max];
+        let p3 = [mid_x + 20.0 * delta_max, mid_y - 20.0 * delta_max];
 
-        triangles.push(Triangle::new(p1, p2, p3));
+        vertices.push(p1);
+        vertices.push(p2);
+        vertices.push(p3);
 
-        for p in &vertices {
+        triangles.push(Triangle::new(
+            vertices.len() - 3,
+            vertices.len() - 2,
+            vertices.len() - 1,
+        ));
+
+        for p in 0..vertices.len() - 3 {
+            // -3 for the newly added points
             let mut polygon = Vec::new();
 
             for t in triangles.iter_mut() {
-                if t.circum_circle_contains(p) {
+                if t.circum_circle_contains(p, &vertices) {
                     t.is_bad = true;
                     polygon.push(Edge::new(t.a, t.b));
                     polygon.push(Edge::new(t.b, t.c));
@@ -86,7 +96,7 @@ impl Delaunay {
 
             for i in 0..polygon.len() {
                 for j in i + 1..polygon.len() {
-                    if polygon[i].almost_equal(&polygon[j]) {
+                    if polygon[i] == polygon[j] {
                         polygon[i].is_bad = true;
                         polygon[j].is_bad = true;
                     }
@@ -103,7 +113,9 @@ impl Delaunay {
         triangles = triangles
             .into_iter()
             .filter(|t| {
-                !(t.contains_vertex(&p1) || t.contains_vertex(&p2) || t.contains_vertex(&p3))
+                !(t.contains_vertex(vertices.len() - 3)
+                    || t.contains_vertex(vertices.len() - 2)
+                    || t.contains_vertex(vertices.len() - 1))
             })
             .collect();
 
@@ -112,6 +124,10 @@ impl Delaunay {
             edges.push(Edge::new(t.b, t.c));
             edges.push(Edge::new(t.c, t.a));
         }
+
+        vertices.pop();
+        vertices.pop();
+        vertices.pop();
 
         Self {
             vertices,

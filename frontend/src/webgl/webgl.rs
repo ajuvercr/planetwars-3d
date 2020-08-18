@@ -3,7 +3,7 @@ use wasm_bindgen::JsCast;
 use super::{
     buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout},
     renderer::Renderer,
-    shader::Uniform1f,
+    shader::{Uniform2f, Uniform1f},
     Shader,
 };
 use crate::delaunay::Delaunay;
@@ -135,7 +135,7 @@ impl WebGl {
 
         let shader = Shader::single(gl, frag_source, vert_source, HashMap::new())?;
 
-        let (vertices, indices) = gen_triangle_square(10);
+        let (vertices, indices) = gen_triangle_square(30);
         let vertex_buffer = VertexBuffer::vertex_buffer(gl, vertices)?;
         let index_buffer = IndexBuffer::index_buffer(gl, indices)?;
 
@@ -168,6 +168,10 @@ impl WebGl {
             );
 
             context.insert("u_aspect".to_string(), Box::new(Uniform1f::new(aspect)));
+
+            context.insert("u_viewport".to_string(), Box::new(
+                Uniform2f::new(100.0, 100.0)
+            ));
         });
 
         self.renderer.render(gl);
@@ -236,15 +240,15 @@ pub fn gen_generalized_spiral(n: f32, c: f32) -> Vec<f32> {
 
 pub fn gen_triangle_square(n: i32) -> (Vec<f32>, Vec<u16>) {
     let mut out = Vec::new();
-    let points: Vec<[f32; 2]> = (0..n)
+    let points: Vec<(f32, f32)> = (0..n)
         .map(|x| 2.0 * std::f32::consts::PI * (x as f32) / n as f32)
-        .map(|i| [i.cos(), i.sin()])
-        .chain(vec![[0.0, 0.0]])
+        .map(|i| (i.cos() * 100.0, i.sin() * 100.0))
+        .chain(vec![(0.0, 0.0), (5.0, 5.0), (5.0, -5.0),(-5.0, 5.0),(-5.0, -5.0),])
         .collect();
 
-    for p in &points {
-        out.push(p[0]);
-        out.push(p[1]);
+    for &(x, y) in &points {
+        out.push(x);
+        out.push(y);
         out.push(0.0);
     }
 

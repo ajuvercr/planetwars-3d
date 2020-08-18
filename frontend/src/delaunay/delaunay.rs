@@ -36,23 +36,21 @@ impl Delaunay {
         let mut edges = Vec::new();
 
         let (min_x, min_y, max_x, max_y) = {
-            let mut min_x = vertices[0][0];
-            let mut min_y = vertices[0][1];
-            let mut max_x = min_x;
-            let mut max_y = min_y;
+            let (mut min_x, mut min_y) =  vertices[0];
+            let (mut max_x, mut max_y) = (min_x, min_y);
 
-            for v in &vertices {
-                if v[0] < min_x {
-                    min_x = v[0];
+            for &(vx, vy) in &vertices {
+                if vx < min_x {
+                    min_x = vx;
                 }
-                if v[1] < min_y {
-                    min_y = v[1];
+                if vy < min_y {
+                    min_y = vy;
                 }
-                if v[0] > max_x {
-                    max_x = v[0];
+                if vx > max_x {
+                    max_x = vx;
                 }
-                if v[1] > max_y {
-                    max_y = v[1];
+                if vy > max_y {
+                    max_y = vy;
                 }
             }
 
@@ -65,9 +63,9 @@ impl Delaunay {
         let mid_x = (min_x + max_x) / 2.0;
         let mid_y = (min_y + max_y) / 2.0;
 
-        let p1 = [mid_x - 20.0 * delta_max, mid_y - 20.0 * delta_max];
-        let p2 = [mid_x, mid_y + 20.0 * delta_max];
-        let p3 = [mid_x + 20.0 * delta_max, mid_y - 20.0 * delta_max];
+        let p1 = (mid_x - 20.0 * delta_max, mid_y - 20.0 * delta_max);
+        let p2 = (mid_x, mid_y + delta_max);
+        let p3 = (mid_x + 20.0 * delta_max, mid_y - 20.0 * delta_max);
 
         vertices.push(p1);
         vertices.push(p2);
@@ -77,10 +75,11 @@ impl Delaunay {
             vertices.len() - 3,
             vertices.len() - 2,
             vertices.len() - 1,
+            &vertices,
         ));
 
+        // -3 for the newly added points
         for p in 0..vertices.len() - 3 {
-            // -3 for the newly added points
             let mut polygon = Vec::new();
 
             for t in triangles.iter_mut() {
@@ -105,7 +104,7 @@ impl Delaunay {
 
             for Edge { v, w, is_bad } in polygon {
                 if !is_bad {
-                    triangles.push(Triangle::new(v, w, p.clone()));
+                    triangles.push(Triangle::new(v, w, p.clone(), &vertices));
                 }
             }
         }

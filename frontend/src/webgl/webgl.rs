@@ -1,62 +1,42 @@
+use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use super::{
     buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout},
     renderer::Renderer,
-    shader::{Uniform2f, Uniform1f},
+    shader::{Uniform1f, Uniform2f},
     Shader,
 };
 use crate::delaunay::Delaunay;
 use std::collections::HashMap;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
-use yew::services::resize::{ResizeService, ResizeTask, WindowDimensions};
-use yew::services::ConsoleService;
-use yew::services::{RenderService, Task};
-use yew::{html, Component, ComponentLink, Html, NodeRef, ShouldRender};
 
+#[wasm_bindgen]
 pub struct WebGl {
-    canvas: Option<HtmlCanvasElement>,
-    gl: Option<GL>,
-    link: ComponentLink<Self>,
-    node_ref: NodeRef,
-    render_loop: Option<Box<dyn Task>>,
+    canvas: HtmlCanvasElement,
+    gl: GL,
     aspect: f32,
 
     renderer: Renderer,
     sphere_index: usize,
-
-    _resize_task: ResizeTask,
 }
 
-pub enum Msg {
-    Render(f64),
-    Resize(WindowDimensions),
-}
+unsafe impl Send for WebGl {}
 
-impl Component for WebGl {
-    type Message = Msg;
-    type Properties = ();
+unsafe impl Sync for WebGl {}
 
-    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let _resize_task = ResizeService::new().register(link.callback(|dim| Msg::Resize(dim)));
-
-        Self {
-            canvas: None,
-            gl: None,
-            link,
-            node_ref: NodeRef::default(),
-            render_loop: None,
-            aspect: 1.0,
-
-            renderer: Renderer::new(),
-            sphere_index: 0,
-            _resize_task,
-        }
-    }
-
-    fn rendered(&mut self, first_render: bool) {
-        let canvas = self.node_ref.cast::<HtmlCanvasElement>().unwrap();
+#[wasm_bindgen]
+impl WebGl {
+    #[wasm_bindgen(constructor)]
+    pub fn new(canvas_id: &str) -> Result<WebGl, JsValue> {
+        let window = web_sys::window().expect("no global `window` exists");
+        let document = window.document().expect("should have a document on window");
+        let canvas: HtmlCanvasElement = document
+            .get_element_by_id(canvas_id)
+            .unwrap()
+            .dyn_into()
+            .unwrap();
 
         let gl: GL = canvas
             .get_context("webgl")
@@ -65,79 +45,41 @@ impl Component for WebGl {
             .dyn_into()
             .unwrap();
 
-        self.canvas = Some(canvas);
-        self.gl = Some(gl);
+        Ok(Self {
+            canvas,
+            gl,
+            aspect: 1.0,
 
-        if first_render {
-            let render_frame = self.link.callback(Msg::Render);
-            let handle = RenderService::request_animation_frame(render_frame);
-            self.render_loop = Some(Box::new(handle));
-
-            {
-                // Setup size correctly
-                let canvas = self.canvas.as_ref().unwrap();
-                let gl = self.gl.as_ref().expect("GL Context not initialized!");
-
-                let width = canvas.parent_element().unwrap().client_width();
-                let height = canvas.parent_element().unwrap().client_height();
-
-                canvas.set_width(width as u32);
-                canvas.set_height(height as u32);
-                gl.viewport(0, 0, width, height);
-
-                self.aspect = width as f32 / height as f32;
-            }
-
-            if self.init_renderer().is_none() {
-                ConsoleService::error("init_renderer returned None");
-            };
-        }
+            renderer: Renderer::new(),
+            sphere_index: 0,
+        })
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
-        match msg {
-            Msg::Render(timestamp) => {
-                self.render_gl(timestamp);
-            }
-            Msg::Resize(WindowDimensions { width, height }) => {
-                if let Some(ref mut canvas) = &mut self.canvas {
-                    let gl = self.gl.as_ref().expect("GL Context not initialized!");
+    pub fn init_renderer(&mut self) -> Result<JsValue, JsValue> {
+        // TODO add resize
+        let canvas = &self.canvas;
+        let gl = &self.gl;
 
-                    canvas.set_width(width as u32);
-                    canvas.set_height(height as u32);
-                    gl.viewport(0, 0, width, height);
+        let width = canvas.parent_element().unwrap().client_width();
+        let height = canvas.parent_element().unwrap().client_height();
 
-                    self.aspect = width as f32 / height as f32;
-                }
-            }
-        }
-        false
-    }
+        canvas.set_width(width as u32);
+        canvas.set_height(height as u32);
+        gl.viewport(0, 0, width, height);
 
-    fn view(&self) -> Html {
-        html! {
-           <canvas class="nav-body" ref={self.node_ref.clone()} />
-        }
-    }
-
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-        ConsoleService::log("CHANGE FUNCTION CALL");
-        true
-    }
-}
-
-impl WebGl {
-    fn init_renderer(&mut self) -> Option<()> {
-        let gl = self.gl.as_ref().expect("GL Context not initialized!");
+        self.aspect = width as f32 / height as f32;
 
         let vert_source = include_str!("./basic.vert");
         let frag_source = include_str!("./basic.frag");
 
-        let shader = Shader::single(gl, frag_source, vert_source, HashMap::new())?;
+        let shader = Shader::single(gl, frag_source, vert_source, HashMap::new())
+            .ok_or("Failed create shader")?;
 
-        let (vertices, indices) = gen_triangle_square(30);
-        let vertex_buffer = VertexBuffer::vertex_buffer(gl, vertices)?;
-        let index_buffer = IndexBuffer::index_buffer(gl, indices)?;
+        let (vertices, indices) = gen_triangle_square(10);
+        let vertex_buffer =
+            VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
+        let index_buffer =
+            IndexBuffer::index_buffer(gl, indices).ok_or("Failed to get indicies")?;
 
         let mut layout = VertexBufferLayout::new();
         layout.push(GL::FLOAT, 3, 4, "a_position", false);
@@ -149,11 +91,11 @@ impl WebGl {
             .renderer
             .add_to_draw(index_buffer, vao, shader, None, 0);
 
-        Some(())
+        Ok("nice".into())
     }
 
-    fn render_gl(&mut self, timestamp: f64) {
-        let gl = self.gl.as_ref().expect("GL Context not initialized!");
+    pub fn render_gl(&mut self, timestamp: f64) {
+        let gl = &self.gl;
 
         let aspect = self.aspect;
         self.renderer.update_uniforms(self.sphere_index, 0, |c| {
@@ -169,18 +111,13 @@ impl WebGl {
 
             context.insert("u_aspect".to_string(), Box::new(Uniform1f::new(aspect)));
 
-            context.insert("u_viewport".to_string(), Box::new(
-                Uniform2f::new(100.0, 100.0)
-            ));
+            context.insert(
+                "u_viewport".to_string(),
+                Box::new(Uniform2f::new(100.0, 100.0)),
+            );
         });
 
         self.renderer.render(gl);
-
-        let render_frame = self.link.callback(Msg::Render);
-        let handle = RenderService::request_animation_frame(render_frame);
-
-        // A reference to the new handle must be retained for the next render to run.
-        self.render_loop = Some(Box::new(handle));
     }
 }
 
@@ -243,7 +180,13 @@ pub fn gen_triangle_square(n: i32) -> (Vec<f32>, Vec<u16>) {
     let points: Vec<(f32, f32)> = (0..n)
         .map(|x| 2.0 * std::f32::consts::PI * (x as f32) / n as f32)
         .map(|i| (i.cos() * 100.0, i.sin() * 100.0))
-        .chain(vec![(0.0, 0.0), (5.0, 5.0), (5.0, -5.0),(-5.0, 5.0),(-5.0, -5.0),])
+        .chain(vec![
+            (0.0, 0.0),
+            (5.0, 5.0),
+            (5.0, -5.0),
+            (-5.0, 5.0),
+            (-5.0, -5.0),
+        ])
         .collect();
 
     for &(x, y) in &points {

@@ -2,7 +2,6 @@ use web_sys::WebGlRenderingContext as GL;
 use web_sys::*;
 
 use std::collections::HashMap;
-use yew::services::ConsoleService as Console;
 
 fn load_shader(gl: &GL, shader_source: &str, shader_type: u32) -> Option<web_sys::WebGlShader> {
     let shader = gl.create_shader(shader_type)?;
@@ -14,11 +13,11 @@ fn load_shader(gl: &GL, shader_source: &str, shader_type: u32) -> Option<web_sys
         .as_bool()
         .unwrap();
     if !compiled {
-        Console::error(&format!(
+        console_log!(
             "*** Error compiling shader '{:?}': {}",
             shader_source,
             gl.get_shader_info_log(&shader).unwrap()
-        ));
+        );
         gl.delete_shader(Some(&shader)); // Wtf why this option?
         return None;
     }
@@ -39,11 +38,11 @@ fn create_program(gl: &GL, shaders: Vec<web_sys::WebGlShader>) -> Option<web_sys
         .as_bool()
         .unwrap();
     if !linked {
-        Console::error(&format!(
+        console_log!(
             "*** Error linking program '{:?}': {}",
             program,
-            gl.get_program_info_log(&program).unwrap()
-        ));
+            gl.get_program_info_log(&program).unwrap(),
+        );
         gl.delete_program(Some(&program)); // Wtf why this option?
         return None;
     }

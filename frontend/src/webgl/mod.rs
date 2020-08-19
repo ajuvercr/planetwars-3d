@@ -1,9 +1,9 @@
-mod webgl;
+pub mod webgl;
 pub use webgl::*;
 
 pub mod shader;
-pub use shader::Shader;
+use shader::Shader;
 
-pub mod buffer;
+mod buffer;
 
-pub mod renderer;
+mod renderer;

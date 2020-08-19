@@ -36,7 +36,7 @@ impl Delaunay {
         let mut edges = Vec::new();
 
         let (min_x, min_y, max_x, max_y) = {
-            let (mut min_x, mut min_y) =  vertices[0];
+            let (mut min_x, mut min_y) = vertices[0];
             let (mut max_x, mut max_y) = (min_x, min_y);
 
             for &(vx, vy) in &vertices {

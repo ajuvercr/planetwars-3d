@@ -4,10 +4,25 @@
         <meta charset="utf-8">
         <title>Yew example</title>
         <link rel="stylesheet" type="text/css" href="style.css">
-        <script type="module">
-			import init from "./wasm.js"
-			init()
-		</script>
     </head>
-    <body style="height: 100%;"></body>
+    <body style="height: 100%;">
+        <canvas id="canvas"></canvas>
+
+        <script type="module">
+            import init, {WebGl} from "./wasm.js"
+
+            (async function() {
+                await init();
+                let webGL = new WebGl("canvas");
+                console.log(webGL.init_renderer());
+    
+                function render(dt) {
+                    webGL.render_gl(dt);
+                    window.requestAnimationFrame(render);
+                }
+                window.requestAnimationFrame(render);
+            })();
+
+		</script>
+    </body>
 </html>

@@ -8,12 +8,12 @@ use std::path::{Path, PathBuf};
 
 #[get("/<file..>")]
 fn files(file: PathBuf) -> Option<NamedFile> {
-    NamedFile::open(Path::new("static/").join(file)).ok()
+    NamedFile::open(Path::new("../frontend/static/").join(file)).ok()
 }
 
 #[get("/")]
 fn index() -> Option<NamedFile> {
-    NamedFile::open(Path::new("static/index.html")).ok()
+    NamedFile::open(Path::new("../frontend/static/index.html")).ok()
 }
 
 fn main() {

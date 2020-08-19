@@ -5,7 +5,6 @@ use super::{
 };
 use std::collections::{BTreeSet, HashMap};
 use web_sys::WebGlRenderingContext as GL;
-use yew::services::ConsoleService;
 
 static SHOW_UNIFORMS: bool = false;
 
@@ -54,11 +53,11 @@ impl Renderable for DefaultRenderable {
         if let Some(uniforms) = &self.uniforms {
             for (name, uniform) in uniforms.iter() {
                 if SHOW_UNIFORMS {
-                    ConsoleService::log(&format!("Setting uniform {} {:?}", name, uniform));
+                    // console_log!("Setting uniform {} {:?}", name, uniform);
                 }
 
                 if self.shader.uniform(gl, &name, &uniform).is_none() {
-                    ConsoleService::error(&format!("Failed etting uniform {} {:?}", name, uniform));
+                    // console_log!("Failed etting uniform {} {:?}", name, uniform);
                 }
             }
         }

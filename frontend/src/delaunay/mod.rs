@@ -57,12 +57,12 @@ impl Triangle {
         let (bx, by) = vs[b];
         let (cx, cy) = vs[c];
 
-        if (bx - ax)*(cy-ay) - (by - ay)*(cx - ax) < 0.0 {
+        if (bx - ax) * (cy - ay) - (by - ay) * (cx - ax) < 0.0 {
             Self {
-                a:b,
-                b:a,
+                a: b,
+                b: a,
                 c,
-                is_bad: false
+                is_bad: false,
             }
         } else {
             Self {
@@ -87,7 +87,6 @@ impl Triangle {
         // det(ax - dx, ay - dy, (ax - dx) * (ax - dx) + (ay - dy) * (ay-dy),
         //     bx - dx, by-dy, (bx - dx) * (bx - dx) + (by - dy) * (by - dy),
         //     cx - dx, cy-dy, (cx - dx)*(cx - dx) + (cy - dy) * (cy - dy)) > 0.0
-
 
         let a = vs[self.a];
         let b = vs[self.b];
@@ -115,8 +114,8 @@ impl Triangle {
 
 #[allow(dead_code)]
 #[inline]
-fn det(a: Type, b: Type, c: Type, d:Type, e: Type, f:Type, g: Type, h:Type, i: Type) -> Type {
-    a*e*i + b*f*g + c*d*h - c*e*g - b*d*i - a*f*h
+fn det(a: Type, b: Type, c: Type, d: Type, e: Type, f: Type, g: Type, h: Type, i: Type) -> Type {
+    a * e * i + b * f * g + c * d * h - c * e * g - b * d * i - a * f * h
 }
 
 impl PartialEq for Triangle {

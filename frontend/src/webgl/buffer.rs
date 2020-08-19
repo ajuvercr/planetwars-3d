@@ -131,9 +131,8 @@ mod buffer {
 
 pub use vertex::{VertexArray, VertexBufferLayout};
 mod vertex {
-    use crate::Shader;
+    use super::super::Shader;
     use web_sys::WebGlRenderingContext as GL;
-    use yew::services::ConsoleService;
 
     use super::{BufferTrait, VertexBuffer};
 
@@ -245,7 +244,7 @@ mod vertex {
                         );
                         gl.enable_vertex_attrib_array(idx);
                     } else {
-                        ConsoleService::error(&format!("Location {} not found", element.index));
+                        // console_log!("Location {} not found", element.index);
                     }
 
                     offset += element.amount * element.type_size;

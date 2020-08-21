@@ -2,15 +2,17 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use super::{
-    buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout},
+    buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout, Buffer},
     renderer::Renderer,
     shader::{Uniform1f, Uniform2f},
     Shader,
 };
-use crate::delaunay::Delaunay;
+use super::super::sphere;
 use std::collections::HashMap;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
+use crate::shader::UniformMat4;
+use cgmath::{Rad, Matrix4, Vector3, SquareMatrix, perspective, Deg};
 
 #[wasm_bindgen]
 pub struct WebGl {
@@ -67,6 +69,16 @@ impl WebGl {
         canvas.set_height(height as u32);
         gl.viewport(0, 0, width, height);
 
+        // Clear the canvas AND the depth buffer.
+        gl.clear(GL::COLOR_BUFFER_BIT | GL::DEPTH_BUFFER_BIT);
+
+        // Turn on culling. By default backfacing triangles
+        // will be culled.
+        gl.enable(GL::CULL_FACE);
+
+        // Enable the depth buffer
+        gl.enable(GL::DEPTH_TEST);
+
         self.aspect = width as f32 / height as f32;
 
         let vert_source = include_str!("./basic.vert");
@@ -75,17 +87,24 @@ impl WebGl {
         let shader = Shader::single(gl, frag_source, vert_source, HashMap::new())
             .ok_or("Failed create shader")?;
 
-        let (vertices, indices) = gen_triangle_square(10);
+        let (vertices, indices, layers) = sphere::gen_sphere_icosahedral(3.0);
+        console_log!("{} verts, {} indices", vertices.len(), indices.len());
+
         let vertex_buffer =
             VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
+        let layer_buffer = VertexBuffer::vertex_buffer(gl, layers).ok_or("Failed to get layers")?;
         let index_buffer =
             IndexBuffer::index_buffer(gl, indices).ok_or("Failed to get indicies")?;
 
         let mut layout = VertexBufferLayout::new();
         layout.push(GL::FLOAT, 3, 4, "a_position", false);
 
+        let mut layer_layout = VertexBufferLayout::new();
+        layer_layout.push(GL::FLOAT, 1, 4, "a_layer", false);
+
         let mut vao = VertexArray::new();
         vao.add_buffer(vertex_buffer, layout);
+        vao.add_buffer(layer_buffer, layer_layout);
 
         self.sphere_index = self
             .renderer
@@ -113,97 +132,22 @@ impl WebGl {
 
             context.insert(
                 "u_viewport".to_string(),
-                Box::new(Uniform2f::new(100.0, 100.0)),
+                Box::new(Uniform2f::new(5.0, 5.0)),
             );
+
+            let projection_matrix = perspective(Deg(90.0), aspect, 0.2, 2000.0);
+
+            let radius = 4.0;
+            // let camera_matrix = Matrix4::from_angle_y(Rad(std::f32::consts::PI));
+            let camera_matrix = Matrix4::identity();
+            let camera_matrix = camera_matrix +  Matrix4::from_translation(Vector3::new(0.0, 0.0, 5.0));
+            let view_matrix = camera_matrix.invert().unwrap();
+
+            let view_projection_matrix = projection_matrix * view_matrix;
+
+            context.insert("u_matrix".to_string(), Box::new(UniformMat4::new_mat4(view_projection_matrix)));
         });
 
         self.renderer.render(gl);
     }
-}
-
-// struct Rect([f32; 3], [f32; 3], [f32; 3], [f32; 3]);
-
-pub fn gen_sphere_icosahedral(_n: i32) -> Vec<f32> {
-    let rho = 0.5 * (1.0 + 5.0_f32.sqrt());
-
-    // let (ptr, ptl, pbr, pbl) = ();
-
-    vec![
-        0.0, 1.0, rho, 0.0, -1.0, rho, rho, 0.0, 1.0, rho, 0.0, 1.0, 0.0, -1.0, rho, rho, -1.0,
-        0.0, rho, -1.0, 0.0, 0.0, -1.0, rho, rho, 1.0,
-        0.0,
-        // rho, 1.0, 0.0,
-        // 0.0, -1.0, rho,
-        // rho, -1.0, 0.0,
-
-        // rho, 0.0, -1.0,
-
-        // 0.0, -1.0, -rho,
-        // 0.0, 1.0, -rho,
-
-        // -rho, 0.0, 1.0,
-        // -rho, 0.0, -1.0,
-
-        // 1.0, rho, 0.0,
-        // -1.0, rho, 0.0,
-        // -1.0, -rho, 0.0,
-        // 1.0, -rho, 0.0,
-    ]
-}
-
-pub fn gen_generalized_spiral(n: f32, c: f32) -> Vec<f32> {
-    let mut out = Vec::new();
-
-    let mut phi = 0.0;
-    let n_sqrt = c / (n + 1 as f32).sqrt();
-
-    for k in 2..(n as u32) {
-        let k = k as f32;
-
-        let hk = 2.0 * (k - 1.0) / n - 1.0;
-
-        let eta = hk.acos();
-        phi = phi + n_sqrt / (1.0 - hk * hk).sqrt();
-
-        let (eta_sin, eta_cos) = eta.sin_cos();
-        let (phi_sin, phi_cos) = phi.sin_cos();
-        out.push(eta_sin * phi_sin);
-        out.push(eta_cos * phi_sin);
-        out.push(phi_cos);
-    }
-
-    out
-}
-
-pub fn gen_triangle_square(n: i32) -> (Vec<f32>, Vec<u16>) {
-    let mut out = Vec::new();
-    let points: Vec<(f32, f32)> = (0..n)
-        .map(|x| 2.0 * std::f32::consts::PI * (x as f32) / n as f32)
-        .map(|i| (i.cos() * 100.0, i.sin() * 100.0))
-        .chain(vec![
-            (0.0, 0.0),
-            (5.0, 5.0),
-            (5.0, -5.0),
-            (-5.0, 5.0),
-            (-5.0, -5.0),
-        ])
-        .collect();
-
-    for &(x, y) in &points {
-        out.push(x);
-        out.push(y);
-        out.push(0.0);
-    }
-
-    let denauy = Delaunay::triangulate(&points);
-
-    let mut idxs = Vec::new();
-
-    for p in denauy.triangles() {
-        idxs.push(p.a as u16);
-        idxs.push(p.b as u16);
-        idxs.push(p.c as u16);
-    }
-
-    (out, idxs)
 }

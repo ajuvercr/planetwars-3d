@@ -3,10 +3,17 @@ precision mediump float;
 uniform float u_time;
 uniform float u_aspect;
 uniform vec2 u_viewport;
+uniform mat4 u_matrix;
+
+varying vec3 v_pos;
+varying float v_layer;
 
 attribute vec3 a_position;
+attribute float a_layer;
 
 void main() {
+
+    v_layer = a_layer;
 
     float time = u_time * 0.001;
     mat3 rot2 = mat3(
@@ -21,7 +28,9 @@ void main() {
         0.0, sin(time), cos(time)
     );
 
-    vec4 position = vec4(a_position * rot * rot2, 1.0);
     vec2 scale = vec2(u_aspect, 1.0);
-    gl_Position = vec4(position.xy / u_viewport / scale, 1.0, 1.0);
+    v_pos = a_position;
+
+    vec4 position = u_matrix * vec4(a_position * rot * rot2, 1.0);
+    gl_Position = position;
 }

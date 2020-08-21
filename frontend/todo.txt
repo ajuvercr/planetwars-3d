@@ -1,0 +1,6 @@
+# What's next
+
+- use perpective
+- get shaders from the web, for autoreload
+- fix all other things
+- let buffers be manipulated with mpsc's

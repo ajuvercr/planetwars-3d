@@ -12,6 +12,8 @@ use wasm_bindgen::prelude::*;
 mod webgl;
 pub use webgl::*;
 
+mod sphere;
+
 mod delaunay;
 
 #[wasm_bindgen]

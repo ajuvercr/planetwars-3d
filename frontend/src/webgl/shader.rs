@@ -158,6 +158,7 @@ impl Shader {
 /************************************************************************/
 
 use std::{fmt::Debug, ops::Deref};
+use cgmath::{Vector4, Matrix4};
 pub trait Uniform: Debug {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation);
 }
@@ -315,5 +316,43 @@ impl<A: Deref<Target = [f32]>> UniformMat3fv<A> {
 impl<A: Deref<Target = [f32]> + Debug> Uniform for UniformMat3fv<A> {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
         gl.uniform_matrix3fv_with_f32_array(Some(location), self.transpose, self.data.deref());
+    }
+}
+
+#[derive(Debug)]
+pub struct UniformMat4<A> {
+    data: A,
+    transpose: bool,
+}
+impl UniformMat4<Vec<f32>> {
+    pub fn new_mat4(mat: Matrix4<f32>) -> Self {
+        let mut data = Vec::new();
+        
+        data.extend_from_slice(<Vector4<f32> as AsRef<[f32;4]>>::as_ref(&mat.x));
+        data.extend_from_slice(<Vector4<f32> as AsRef<[f32;4]>>::as_ref(&mat.y));
+        data.extend_from_slice(<Vector4<f32> as AsRef<[f32;4]>>::as_ref(&mat.z));
+        data.extend_from_slice(<Vector4<f32> as AsRef<[f32;4]>>::as_ref(&mat.w));
+
+        Self {
+            data, 
+            transpose: false,
+        }
+    }
+}
+impl<A: Deref<Target = [f32]>> UniformMat4<A> {
+    pub fn new(data: A) -> Self {
+        Self {
+            data,
+            transpose: false,
+        }
+    }
+
+    pub fn new_transpose(data: A, transpose: bool) -> Self {
+        Self { data, transpose }
+    }
+}
+impl<A: Deref<Target = [f32]> + Debug> Uniform for UniformMat4<A> {
+    fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
+        gl.uniform_matrix4fv_with_f32_array(Some(location), self.transpose, self.data.deref());
     }
 }

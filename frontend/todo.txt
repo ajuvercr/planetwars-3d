@@ -1,6 +1,13 @@
 # What's next
 
-- use perpective
+- cache newly created vertices in gen_more
+    - Potentially create better spheres, but certainly less cpu/gpu strain
+
 - get shaders from the web, for autoreload
-- fix all other things
+    - Makes debugging shaders easier
+
 - let buffers be manipulated with mpsc's
+    - Setup camera object
+        - Setup eventhandelers from js to rust
+            - Done working flying camera
+- idem with rendering context I guess?

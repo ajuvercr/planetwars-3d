@@ -157,8 +157,8 @@ impl Shader {
 /*             Start super ugly generic code, just uniforms             */
 /************************************************************************/
 
+use cgmath::{Matrix4, Vector4};
 use std::{fmt::Debug, ops::Deref};
-use cgmath::{Vector4, Matrix4};
 pub trait Uniform: Debug {
     fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation);
 }
@@ -327,14 +327,14 @@ pub struct UniformMat4<A> {
 impl UniformMat4<Vec<f32>> {
     pub fn new_mat4(mat: Matrix4<f32>) -> Self {
         let mut data = Vec::new();
-        
-        data.extend_from_slice(<Vector4<f32> as AsRef<[f32;4]>>::as_ref(&mat.x));
-        data.extend_from_slice(<Vector4<f32> as AsRef<[f32;4]>>::as_ref(&mat.y));
-        data.extend_from_slice(<Vector4<f32> as AsRef<[f32;4]>>::as_ref(&mat.z));
-        data.extend_from_slice(<Vector4<f32> as AsRef<[f32;4]>>::as_ref(&mat.w));
+
+        data.extend_from_slice(<Vector4<f32> as AsRef<[f32; 4]>>::as_ref(&mat.x));
+        data.extend_from_slice(<Vector4<f32> as AsRef<[f32; 4]>>::as_ref(&mat.y));
+        data.extend_from_slice(<Vector4<f32> as AsRef<[f32; 4]>>::as_ref(&mat.z));
+        data.extend_from_slice(<Vector4<f32> as AsRef<[f32; 4]>>::as_ref(&mat.w));
 
         Self {
-            data, 
+            data,
             transpose: false,
         }
     }

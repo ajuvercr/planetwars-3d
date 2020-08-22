@@ -17,6 +17,8 @@
                 console.log(webGL.init_renderer());
     
                 function render(dt) {
+                    let err = webGL.update();
+                    if(err) console.err(err);
                     webGL.render_gl(dt);
                     window.requestAnimationFrame(render);
                 }

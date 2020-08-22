@@ -1,18 +1,18 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
+use super::super::sphere;
 use super::{
-    buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout, Buffer},
+    buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout},
     renderer::Renderer,
     shader::{Uniform1f, Uniform2f},
     Shader,
 };
-use super::super::sphere;
+use crate::shader::UniformMat4;
+use cgmath::{perspective, Deg, Matrix4, SquareMatrix, Vector3};
 use std::collections::HashMap;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
-use crate::shader::UniformMat4;
-use cgmath::{Matrix4, Vector3, SquareMatrix, perspective, Deg};
 
 #[wasm_bindgen]
 pub struct WebGl {
@@ -113,7 +113,15 @@ impl WebGl {
         Ok("nice".into())
     }
 
-    pub fn render_gl(&mut self, timestamp: f64) {
+    pub fn update(&mut self) -> Result<(), JsValue> {
+        let gl = &self.gl;
+        self.renderer
+            .update(gl)
+            .ok_or("Renderer didn't update well")?;
+        Ok(())
+    }
+
+    pub fn render_gl(&mut self, timestamp: f64) -> Result<(), JsValue> {
         let gl = &self.gl;
 
         let aspect = self.aspect;
@@ -130,23 +138,26 @@ impl WebGl {
 
             context.insert("u_aspect".to_string(), Box::new(Uniform1f::new(aspect)));
 
-            context.insert(
-                "u_viewport".to_string(),
-                Box::new(Uniform2f::new(5.0, 5.0)),
-            );
+            context.insert("u_viewport".to_string(), Box::new(Uniform2f::new(5.0, 5.0)));
 
             let projection_matrix = perspective(Deg(90.0), aspect, 0.2, 2000.0);
 
             // let camera_matrix = Matrix4::from_angle_y(Rad(std::f32::consts::PI));
             let camera_matrix = Matrix4::identity();
-            let camera_matrix = camera_matrix +  Matrix4::from_translation(Vector3::new(0.0, 0.0, 5.0));
+            let camera_matrix =
+                camera_matrix + Matrix4::from_translation(Vector3::new(0.0, 0.0, 5.0));
             let view_matrix = camera_matrix.invert().unwrap();
 
             let view_projection_matrix = projection_matrix * view_matrix;
 
-            context.insert("u_matrix".to_string(), Box::new(UniformMat4::new_mat4(view_projection_matrix)));
+            context.insert(
+                "u_matrix".to_string(),
+                Box::new(UniformMat4::new_mat4(view_projection_matrix)),
+            );
         });
 
         self.renderer.render(gl);
+
+        Ok(())
     }
 }

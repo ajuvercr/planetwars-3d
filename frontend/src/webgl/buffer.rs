@@ -1,58 +1,100 @@
 pub use buffer::{Buffer, BufferTrait, IndexBuffer, VertexBuffer};
 mod buffer {
     use std::ops::Deref;
+
+    use std::sync::mpsc;
     use web_sys::WebGlRenderingContext as GL;
     use web_sys::*;
 
     pub type VertexBuffer = Buffer<f32, Vec<f32>>;
     pub type IndexBuffer = Buffer<u16, Vec<u16>>;
 
+    enum BufferChange<A> {
+        Reset(Box<A>),
+        Update(Box<A>, usize), // Data start index
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct BufferHandle<A> {
+        sender: mpsc::Sender<BufferChange<A>>,
+    }
+
+    impl<A> BufferHandle<A> {
+        pub fn reset<B: Into<Box<A>>>(&self, data: B) -> Option<()> {
+            self.sender.send(BufferChange::Reset(data.into())).ok()
+        }
+
+        pub fn update<B: Into<Box<A>>>(&self, data: B, start: usize) -> Option<()> {
+            self.sender
+                .send(BufferChange::Update(data.into(), start))
+                .ok()
+        }
+    }
+
+    pub trait PrivBufferTrait<A> {
+        fn update(&mut self, gl: &GL, data: Box<A>, start: usize);
+        fn reset(&mut self, gl: &GL, data: Box<A>);
+    }
+
     pub trait BufferTrait {
         fn bind(&self, gl: &GL);
         fn get_count(&self) -> usize;
+        fn flush(&mut self, gl: &GL) -> Option<()>;
     }
 
     #[derive(Debug)]
     pub struct Buffer<T, A: Deref<Target = [T]>> {
         buffer: WebGlBuffer,
-        data: Option<A>,
+        data: Option<Box<A>>,
         count: usize,
         target: u32,
+
+        tx: mpsc::Sender<BufferChange<A>>,
+        rx: mpsc::Receiver<BufferChange<A>>,
     }
 
-    impl VertexBuffer {
-        #[inline]
-        pub fn vertex_buffer<D: Into<Option<Vec<f32>>>>(gl: &GL, data: D) -> Option<Self> {
-            Buffer::<f32, Vec<f32>>::new(gl, data.into(), GL::ARRAY_BUFFER)
-        }
-    }
-
-    impl IndexBuffer {
-        #[inline]
-        pub fn index_buffer<D: Into<Option<Vec<u16>>>>(gl: &GL, data: D) -> Option<Self> {
-            Buffer::<u16, Vec<u16>>::new(gl, data.into(), GL::ELEMENT_ARRAY_BUFFER)
-        }
-    }
-
-    impl<A: Deref<Target = [f32]>> Buffer<f32, A> {
-        pub fn new(gl: &GL, data: Option<A>, target: u32) -> Option<Self> {
+    impl<T, A: Deref<Target = [T]>> Buffer<T, A> {
+        pub fn new<B: Into<Option<A>>>(gl: &GL, data: B, target: u32) -> Option<Self> {
             let buffer = gl.create_buffer()?;
 
-            let mut this = Self {
+            let (tx, rx) = mpsc::channel();
+
+            if let Some(data) = data.into() {
+                tx.send(BufferChange::Reset(Box::new(data))).ok()?;
+            }
+
+            let this = Self {
                 count: 0,
                 data: None,
                 target,
                 buffer,
+                tx,
+                rx,
             };
-
-            if let Some(data) = data {
-                this.update_data(gl, data);
-            }
 
             Some(this)
         }
 
-        pub fn update_data(&mut self, gl: &GL, data: A) {
+        pub fn vertex_buffer<B: Into<Option<A>>>(gl: &GL, data: B) -> Option<Self> {
+            Buffer::new(gl, data, GL::ARRAY_BUFFER)
+        }
+
+        pub fn index_buffer<B: Into<Option<A>>>(gl: &GL, data: B) -> Option<Self> {
+            Buffer::new(gl, data, GL::ELEMENT_ARRAY_BUFFER)
+        }
+
+        pub fn handle(&self) -> BufferHandle<A> {
+            BufferHandle {
+                sender: self.tx.clone(),
+            }
+        }
+    }
+
+    impl<A: Deref<Target = [f32]>> PrivBufferTrait<A> for Buffer<f32, A> {
+        fn update(&mut self, _gl: &GL, _data: Box<A>, _start: usize) {
+            unimplemented!();
+        }
+        fn reset(&mut self, gl: &GL, data: Box<A>) {
             self.count = data.len();
             self.data = Some(data);
 
@@ -62,25 +104,11 @@ mod buffer {
         }
     }
 
-    impl<A: Deref<Target = [i32]>> Buffer<i32, A> {
-        pub fn new(gl: &GL, data: Option<A>, target: u32) -> Option<Self> {
-            let buffer = gl.create_buffer()?;
-
-            let mut this = Self {
-                count: 0,
-                data: None,
-                target,
-                buffer,
-            };
-
-            if let Some(data) = data {
-                this.update_data(gl, data);
-            }
-
-            Some(this)
+    impl<A: Deref<Target = [i32]>> PrivBufferTrait<A> for Buffer<i32, A> {
+        fn update(&mut self, _gl: &GL, _data: Box<A>, _start: usize) {
+            unimplemented!();
         }
-
-        pub fn update_data(&mut self, gl: &GL, data: A) {
+        fn reset(&mut self, gl: &GL, data: Box<A>) {
             self.count = data.len();
             self.data = Some(data);
 
@@ -90,25 +118,11 @@ mod buffer {
         }
     }
 
-    impl<A: Deref<Target = [u16]>> Buffer<u16, A> {
-        pub fn new(gl: &GL, data: Option<A>, target: u32) -> Option<Self> {
-            let buffer = gl.create_buffer()?;
-
-            let mut this = Self {
-                count: 0,
-                data: None,
-                target,
-                buffer,
-            };
-
-            if let Some(data) = data {
-                this.update_data(gl, data);
-            }
-
-            Some(this)
+    impl<A: Deref<Target = [u16]>> PrivBufferTrait<A> for Buffer<u16, A> {
+        fn update(&mut self, _gl: &GL, _data: Box<A>, _start: usize) {
+            unimplemented!();
         }
-
-        pub fn update_data(&mut self, gl: &GL, data: A) {
+        fn reset(&mut self, gl: &GL, data: Box<A>) {
             self.count = data.len();
             self.data = Some(data);
 
@@ -118,13 +132,32 @@ mod buffer {
         }
     }
 
-    impl<T, A: Deref<Target = [T]>> BufferTrait for Buffer<T, A> {
+    impl<T, A: Deref<Target = [T]>> BufferTrait for Buffer<T, A>
+    where
+        Self: PrivBufferTrait<A>,
+    {
         fn bind(&self, gl: &GL) {
             gl.bind_buffer(self.target, Some(&self.buffer));
         }
 
         fn get_count(&self) -> usize {
             self.count
+        }
+
+        fn flush(&mut self, gl: &GL) -> Option<()> {
+            loop {
+                match self.rx.try_recv() {
+                    Ok(BufferChange::Update(data, start)) => {
+                        self.update(gl, data, start);
+                    }
+                    Ok(BufferChange::Reset(data)) => {
+                        self.reset(gl, data);
+                    }
+                    Err(mpsc::TryRecvError::Empty) => break,
+                    Err(mpsc::TryRecvError::Disconnected) => return None,
+                }
+            }
+            Some(())
         }
     }
 }
@@ -158,7 +191,6 @@ mod vertex {
     }
 
     #[derive(Debug)]
-
     pub struct VertexBufferLayout {
         elements: Vec<VertexBufferElement>,
         stride: i32,
@@ -217,8 +249,11 @@ mod vertex {
             self.layouts.push(layout);
         }
 
-        pub fn update_buffer(&mut self, gl: &GL, index: usize, data: Vec<f32>) {
-            self.buffers.get_mut(index).map(|b| b.update_data(gl, data));
+        pub fn update(&mut self, gl: &GL) -> Option<()> {
+            for buffer in self.buffers.iter_mut() {
+                buffer.flush(gl)?;
+            }
+            Some(())
         }
 
         pub fn bind(&self, gl: &GL, shader: &mut Shader) {
@@ -244,7 +279,7 @@ mod vertex {
                         );
                         gl.enable_vertex_attrib_array(idx);
                     } else {
-                        // console_log!("Location {} not found", element.index);
+                        console_log!("Location {} not found", element.index);
                     }
 
                     offset += element.amount * element.type_size;

@@ -6,4 +6,4 @@ use shader::Shader;
 
 mod buffer;
 
-mod renderer;
+pub mod renderer;

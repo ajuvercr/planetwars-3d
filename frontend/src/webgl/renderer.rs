@@ -11,8 +11,7 @@ static SHOW_UNIFORMS: bool = false;
 pub trait Renderable {
     fn get_uniforms<'a>(&'a mut self) -> &'a mut Option<HashMap<String, Box<dyn Uniform>>>;
     fn render(&mut self, gl: &GL);
-    fn update_vao(&mut self, gl: &GL, index: usize, new_data: Vec<f32>);
-    fn update_ib(&mut self, gl: &GL, new_indices: Vec<u16>);
+    fn update(&mut self, gl: &GL) -> Option<()>;
 }
 
 pub struct DefaultRenderable {
@@ -43,11 +42,10 @@ impl Renderable for DefaultRenderable {
     fn get_uniforms<'a>(&'a mut self) -> &'a mut Option<HashMap<String, Box<dyn Uniform>>> {
         &mut self.uniforms
     }
-    fn update_vao(&mut self, gl: &GL, index: usize, new_data: Vec<f32>) {
-        self.vao.update_buffer(gl, index, new_data);
-    }
-    fn update_ib(&mut self, gl: &GL, new_indices: Vec<u16>) {
-        self.ibo.update_data(gl, new_indices);
+    fn update(&mut self, gl: &GL) -> Option<()> {
+        self.ibo.flush(gl)?;
+        self.vao.update(gl)?;
+        Some(())
     }
     fn render(&mut self, gl: &GL) {
         if let Some(uniforms) = &self.uniforms {
@@ -138,6 +136,17 @@ impl Renderer {
             Box::new(DefaultRenderable::new(ibo, vao, shader, uniforms.into())),
             layer,
         )
+    }
+
+    pub fn update(&mut self, gl: &GL) -> Option<()> {
+        for layer_idx in self.sorted_layers.iter() {
+            if let Some(layer) = self.layers.get_mut(layer_idx) {
+                for (renderable, _enabled) in layer.iter_mut() {
+                    renderable.update(gl)?;
+                }
+            }
+        }
+        Some(())
     }
 
     pub fn render(&mut self, gl: &GL) {

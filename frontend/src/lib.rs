@@ -12,9 +12,9 @@ use wasm_bindgen::prelude::*;
 mod webgl;
 pub use webgl::*;
 
-mod sphere;
+pub mod sphere;
 
-mod delaunay;
+pub mod delaunay;
 
 #[wasm_bindgen]
 extern "C" {

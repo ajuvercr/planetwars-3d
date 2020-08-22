@@ -79,15 +79,6 @@ impl Triangle {
     }
 
     pub fn circum_circle_contains(&self, v: usize, vs: &Vec<VertexType>) -> bool {
-        // let (ax, ay) = vs[self.a];
-        // let (bx, by) = vs[self.b];
-        // let (cx, cy) = vs[self.c];
-        // let (dx, dy) = vs[v];
-
-        // det(ax - dx, ay - dy, (ax - dx) * (ax - dx) + (ay - dy) * (ay-dy),
-        //     bx - dx, by-dy, (bx - dx) * (bx - dx) + (by - dy) * (by - dy),
-        //     cx - dx, cy-dy, (cx - dx)*(cx - dx) + (cy - dy) * (cy - dy)) > 0.0
-
         let a = vs[self.a];
         let b = vs[self.b];
         let c = vs[self.c];

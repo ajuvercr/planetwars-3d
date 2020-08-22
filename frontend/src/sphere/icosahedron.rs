@@ -36,26 +36,26 @@ pub fn gen_sphere_icosahedral(n: f32) -> (Vec<f32>, Vec<u16>, Vec<f32>) {
     ];
 
     let mut triangles = vec![
-	    (0, 11, 5),
-	    (0, 5, 1),
-	    (0, 1, 7),
-	    (0, 7, 10),
-	    (0, 10, 11),
-	    (1, 5, 9),
-	    (5, 11, 4),
-	    (11, 10, 2),
-	    (10, 7, 6),
-	    (7, 1, 8),
-	    (3, 9, 4),
-	    (3, 4, 2),
-	    (3, 2, 6),
-	    (3, 6, 8),
-	    (3, 8, 9),
-	    (4, 9, 5),
-	    (2, 4, 11),
-	    (6, 2, 10),
-	    (8, 6, 7),
-	    (9, 8, 1),
+	    (0, 5, 11),
+	    (0, 1, 5),
+	    (0, 7, 1),
+	    (0, 10, 7),
+	    (0, 11, 10),
+	    (1, 9, 5),
+	    (5, 4, 11),
+	    (11, 2, 10),
+	    (10, 6, 7),
+	    (7, 8, 1),
+	    (3, 4, 9),
+	    (3, 2, 4),
+	    (3, 6, 2),
+	    (3, 8, 6),
+	    (3, 9, 8),
+	    (4, 5, 9),
+	    (2, 11, 4),
+	    (6, 10, 2),
+	    (8, 7, 6),
+	    (9, 1, 8),
     ];
 
     let mut i = n;
@@ -80,8 +80,6 @@ pub fn gen_sphere_icosahedral(n: f32) -> (Vec<f32>, Vec<u16>, Vec<f32>) {
         idx_out.push(c as u16);
     }
 
-    console_log!("{:?}", v_outs);
-
     (v_outs, idx_out, layers)
 }
 
@@ -101,9 +99,9 @@ fn gen_more(verts: &mut Vec<Vertex>, layers: &mut Vec<f32>, triangles: Vec<Trian
         let (x2, y2, z2) = verts[t.1];
         let (x3, y3, z3) = verts[t.2];
 
-        let v4 = ((x1 + x2) / 0.5, (y1 + y2) / 0.5,(z1 + z2) / 0.5);
-        let v5 = ((x3 + x2) / 0.5, (y3 + y2) / 0.5,(z3 + z2) / 0.5);
-        let v6 = ((x1 + x3) / 0.5, (y1 + y3) / 0.5,(z1 + z3) / 0.5);
+        let v4 = ((x1 + x2) * 0.5, (y1 + y2) * 0.5,(z1 + z2) * 0.5);
+        let v5 = ((x3 + x2) * 0.5, (y3 + y2) * 0.5,(z3 + z2) * 0.5);
+        let v6 = ((x1 + x3) * 0.5, (y1 + y3) * 0.5,(z1 + z3) * 0.5);
 
         layers.push(layer);
         verts.push(v4);
@@ -117,11 +115,11 @@ fn gen_more(verts: &mut Vec<Vertex>, layers: &mut Vec<f32>, triangles: Vec<Trian
         verts.push(v6);
         let i6 = verts.len() - 1;
 
-        new_triangles.push((t.0, i4, i6));
+        new_triangles.push((t.0, i6, i4));
         new_triangles.push((t.1, i4, i5));
         new_triangles.push((t.2, i5, i6));
 
-        new_triangles.push((i4, i5, i6));
+        new_triangles.push((i4, i6, i5));
     }
 
     new_triangles

@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
 use crate::shader::UniformMat4;
-use cgmath::{Rad, Matrix4, Vector3, SquareMatrix, perspective, Deg};
+use cgmath::{Matrix4, Vector3, SquareMatrix, perspective, Deg};
 
 #[wasm_bindgen]
 pub struct WebGl {
@@ -87,7 +87,7 @@ impl WebGl {
         let shader = Shader::single(gl, frag_source, vert_source, HashMap::new())
             .ok_or("Failed create shader")?;
 
-        let (vertices, indices, layers) = sphere::gen_sphere_icosahedral(3.0);
+        let (vertices, indices, layers) = sphere::gen_sphere_icosahedral(5.0);
         console_log!("{} verts, {} indices", vertices.len(), indices.len());
 
         let vertex_buffer =
@@ -137,7 +137,6 @@ impl WebGl {
 
             let projection_matrix = perspective(Deg(90.0), aspect, 0.2, 2000.0);
 
-            let radius = 4.0;
             // let camera_matrix = Matrix4::from_angle_y(Rad(std::f32::consts::PI));
             let camera_matrix = Matrix4::identity();
             let camera_matrix = camera_matrix +  Matrix4::from_translation(Vector3::new(0.0, 0.0, 5.0));

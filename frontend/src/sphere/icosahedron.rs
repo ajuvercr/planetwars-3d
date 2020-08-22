@@ -1,28 +1,29 @@
+use cgmath::{MetricSpace, Vector3, Zero};
+
 type Triangle = (usize, usize, usize);
-type Vertex = (f32, f32, f32);
+type Vertex = Vector3<f32>;
 
-fn normalize((x, y, z): Vertex) -> Vertex {
-    let lrcp = 1.0 / (x * x + y * y + z * z).sqrt();
-
-    (x * lrcp, y * lrcp, z * lrcp)
+#[inline]
+fn normalize(point: Vertex) -> Vertex {
+    point / point.distance(Vector3::zero())
 }
 
 pub fn gen_sphere_icosahedral(n: f32) -> (Vec<f32>, Vec<u16>, Vec<f32>) {
     let t = (1.0 + 5.0_f32.sqrt()) / 2.0;
 
     let mut verts = vec![
-        (-1.0, t, 0.0),
-        (1.0, t, 0.0),
-        (-1.0, -t, 0.0),
-        (1.0, -t, 0.0),
-        (0.0, -1.0, t),
-        (0.0, 1.0, t),
-        (0.0, -1.0, -t),
-        (0.0, 1.0, -t),
-        (t, 0.0, -1.0),
-        (t, 0.0, 1.0),
-        (-t, 0.0, -1.0),
-        (-t, 0.0, 1.0),
+        Vector3::new(-1.0, t, 0.0),
+        Vector3::new(1.0, t, 0.0),
+        Vector3::new(-1.0, -t, 0.0),
+        Vector3::new(1.0, -t, 0.0),
+        Vector3::new(0.0, -1.0, t),
+        Vector3::new(0.0, 1.0, t),
+        Vector3::new(0.0, -1.0, -t),
+        Vector3::new(0.0, 1.0, -t),
+        Vector3::new(t, 0.0, -1.0),
+        Vector3::new(t, 0.0, 1.0),
+        Vector3::new(-t, 0.0, -1.0),
+        Vector3::new(-t, 0.0, 1.0),
     ];
 
     let mut layers = vec![n, n, n, n, n, n, n, n, n, n, n, n];
@@ -60,7 +61,7 @@ pub fn gen_sphere_icosahedral(n: f32) -> (Vec<f32>, Vec<u16>, Vec<f32>) {
     let mut idx_out = Vec::new();
 
     for vert in verts {
-        let (x, y, z) = normalize(vert); // normalize
+        let Vertex {x, y, z} = normalize(vert); // normalize
         v_outs.push(x);
         v_outs.push(y);
         v_outs.push(z);
@@ -92,13 +93,13 @@ fn gen_more(
     let mut new_triangles = Vec::new();
 
     for t in triangles {
-        let (x1, y1, z1) = verts[t.0];
-        let (x2, y2, z2) = verts[t.1];
-        let (x3, y3, z3) = verts[t.2];
+        let v1 = verts[t.0];
+        let v2 = verts[t.1];
+        let v3 = verts[t.2];
 
-        let v4 = ((x1 + x2) * 0.5, (y1 + y2) * 0.5, (z1 + z2) * 0.5);
-        let v5 = ((x3 + x2) * 0.5, (y3 + y2) * 0.5, (z3 + z2) * 0.5);
-        let v6 = ((x1 + x3) * 0.5, (y1 + y3) * 0.5, (z1 + z3) * 0.5);
+        let v4 = (v1 + v2) * 0.5;// ((x1 + x2) * 0.5, (y1 + y2) * 0.5, (z1 + z2) * 0.5);
+        let v5 = (v2 + v3) * 0.5;
+        let v6 = (v1 + v3) * 0.5;
 
         layers.push(layer);
         verts.push(v4);

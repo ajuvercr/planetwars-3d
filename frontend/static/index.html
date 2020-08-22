@@ -16,9 +16,9 @@
                 let webGL = await new WebGl("canvas").init_renderer();
     
                 function render(dt) {
-                    let err = webGL.update();
+                    let err = webGL.update(dt);
                     if(err) console.err(err);
-                    webGL.render_gl(dt);
+                    webGL.render_gl();
                     window.requestAnimationFrame(render);
                 }
                 window.requestAnimationFrame(render);

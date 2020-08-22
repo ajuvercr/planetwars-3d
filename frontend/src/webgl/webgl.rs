@@ -5,10 +5,10 @@ use super::super::sphere;
 use super::{
     buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout},
     renderer::Renderer,
-    shader::{Uniform1f, Uniform2f},
+    uniform::{Uniform1f},
     Shader,
 };
-use crate::shader::UniformMat4;
+use crate::{uniform::UniformsHandle, uniform::UniformMat4, renderer::DefaultRenderable};
 use cgmath::{perspective, Deg, Matrix4, SquareMatrix, Vector3};
 use std::collections::HashMap;
 use web_sys::HtmlCanvasElement;
@@ -20,6 +20,8 @@ pub struct WebGl {
     canvas: HtmlCanvasElement,
     gl: GL,
     aspect: f32,
+
+    sphere_uniforms: Option<UniformsHandle>,
 
     renderer: Renderer,
     sphere_index: usize,
@@ -79,6 +81,8 @@ impl WebGl {
             gl,
             aspect: 1.0,
 
+            sphere_uniforms: None,
+
             renderer: Renderer::new(),
             sphere_index: 0,
         })
@@ -133,58 +137,41 @@ impl WebGl {
         vao.add_buffer(vertex_buffer, layout);
         vao.add_buffer(layer_buffer, layer_layout);
 
+        let sphere_renderable = DefaultRenderable::new(index_buffer, vao, shader, None);
+        self.sphere_uniforms = Some(sphere_renderable.handle());
+
         self.sphere_index = self
             .renderer
-            .add_to_draw(index_buffer, vao, shader, None, 0);
+            .add_renderable(sphere_renderable, 0);
 
         Ok(self)
     }
 
-    pub fn update(&mut self) -> Result<(), JsValue> {
+    pub fn update(&mut self, timestamp: f64) -> Result<(), JsValue> {
         let gl = &self.gl;
+
+        let uniforms_handle = self.sphere_uniforms.as_mut().unwrap();
+        uniforms_handle.single("u_time", Uniform1f::new(timestamp as f32));
+
+        let projection_matrix = perspective(Deg(90.0), self.aspect, 0.2, 2000.0);
+
+        // let camera_matrix = Matrix4::from_angle_y(Rad(std::f32::consts::PI));
+        let camera_matrix = Matrix4::identity();
+        let camera_matrix =
+            camera_matrix + Matrix4::from_translation(Vector3::new(0.0, 0.0, 5.0));
+        let view_matrix = camera_matrix.invert().unwrap();
+
+        let view_projection_matrix = projection_matrix * view_matrix;
+        uniforms_handle.single("u_matrix", UniformMat4::new_mat4(view_projection_matrix));
+
         self.renderer
             .update(gl)
             .ok_or("Renderer didn't update well")?;
         Ok(())
     }
 
-    pub fn render_gl(&mut self, timestamp: f64) -> Result<(), JsValue> {
-        let gl = &self.gl;
-
-        let aspect = self.aspect;
-        self.renderer.update_uniforms(self.sphere_index, 0, |c| {
-            if c.is_none() {
-                *c = Some(HashMap::new());
-            }
-
-            let context = c.as_mut().unwrap();
-            context.insert(
-                "u_time".to_string(),
-                Box::new(Uniform1f::new(timestamp as f32)),
-            );
-
-            context.insert("u_aspect".to_string(), Box::new(Uniform1f::new(aspect)));
-
-            context.insert("u_viewport".to_string(), Box::new(Uniform2f::new(5.0, 5.0)));
-
-            let projection_matrix = perspective(Deg(90.0), aspect, 0.2, 2000.0);
-
-            // let camera_matrix = Matrix4::from_angle_y(Rad(std::f32::consts::PI));
-            let camera_matrix = Matrix4::identity();
-            let camera_matrix =
-                camera_matrix + Matrix4::from_translation(Vector3::new(0.0, 0.0, 5.0));
-            let view_matrix = camera_matrix.invert().unwrap();
-
-            let view_projection_matrix = projection_matrix * view_matrix;
-
-            context.insert(
-                "u_matrix".to_string(),
-                Box::new(UniformMat4::new_mat4(view_projection_matrix)),
-            );
-        });
-
-        self.renderer.render(gl);
-
+    pub fn render_gl(&mut self) -> Result<(), JsValue> {
+        self.renderer.render(&self.gl);
         Ok(())
     }
 }

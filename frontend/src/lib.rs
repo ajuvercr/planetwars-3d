@@ -7,6 +7,7 @@ macro_rules! console_log {
 
 use wasm_bindgen::prelude::*;
 
+pub mod entity;
 mod webgl;
 pub use webgl::*;
 

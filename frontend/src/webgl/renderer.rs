@@ -1,62 +1,80 @@
 use super::{
     buffer::{BufferTrait, IndexBuffer, VertexArray},
-    shader::Uniform,
+    uniform::Uniform,
     Shader,
 };
-use std::collections::{BTreeSet, HashMap};
+use std::{sync::mpsc, collections::{BTreeSet, HashMap}};
 use web_sys::WebGlRenderingContext as GL;
+use crate::uniform::{UniformsHandle, UniformUpdate};
 
 static SHOW_UNIFORMS: bool = false;
 
 pub trait Renderable {
-    fn get_uniforms<'a>(&'a mut self) -> &'a mut Option<HashMap<String, Box<dyn Uniform>>>;
     fn render(&mut self, gl: &GL);
     fn update(&mut self, gl: &GL) -> Option<()>;
 }
+
 
 pub struct DefaultRenderable {
     ibo: IndexBuffer,
     vao: VertexArray,
     shader: Shader,
-    uniforms: Option<HashMap<String, Box<dyn Uniform>>>,
+    uniforms: HashMap<String, Box<dyn Uniform>>,
+
+    tx: mpsc::Sender<UniformUpdate>,
+    rx: mpsc::Receiver<UniformUpdate>,
 }
 
 impl DefaultRenderable {
-    pub fn new(
+    pub fn new<U: Into<Option<HashMap<String, Box<dyn Uniform>>>>>(
         ibo: IndexBuffer,
         vao: VertexArray,
         shader: Shader,
-        uniforms: Option<HashMap<String, Box<dyn Uniform>>>,
+        uniforms: U,
     ) -> Self {
+
+        let (tx, rx) = mpsc::channel();
+
         Self {
             ibo,
             vao,
             shader,
-            uniforms,
+            uniforms: uniforms.into().unwrap_or(HashMap::new()),
+            tx, rx,
         }
+    }
+
+    pub fn handle(&self) -> UniformsHandle {
+        UniformsHandle::new(self.tx.clone())
     }
 }
 
 impl Renderable for DefaultRenderable {
-    #[inline]
-    fn get_uniforms<'a>(&'a mut self) -> &'a mut Option<HashMap<String, Box<dyn Uniform>>> {
-        &mut self.uniforms
-    }
     fn update(&mut self, gl: &GL) -> Option<()> {
+        loop {
+            match self.rx.try_recv() {
+                Ok(UniformUpdate::Batch(context)) => {
+                    self.uniforms.extend(context.into_iter());
+                },
+                Ok(UniformUpdate::Single(name, uniform)) => {
+                    self.uniforms.insert(name, uniform);
+                },
+                Err(mpsc::TryRecvError::Disconnected) => return None,
+                Err(mpsc::TryRecvError::Empty) => break,
+            }
+        }
         self.ibo.flush(gl)?;
         self.vao.update(gl)?;
         Some(())
     }
     fn render(&mut self, gl: &GL) {
-        if let Some(uniforms) = &self.uniforms {
-            for (name, uniform) in uniforms.iter() {
-                if SHOW_UNIFORMS {
-                    // console_log!("Setting uniform {} {:?}", name, uniform);
-                }
+        for (name, uniform) in self.uniforms.iter() {
+            if SHOW_UNIFORMS {
+                console_log!("Setting uniform {} {:?}", name, uniform);
+            }
 
-                if self.shader.uniform(gl, &name, &uniform).is_none() {
-                    // console_log!("Failed etting uniform {} {:?}", name, uniform);
-                }
+            if self.shader.uniform(gl, &name, &uniform).is_none() {
+                console_log!("Failed etting uniform {} {:?}", name, uniform);
             }
         }
 
@@ -86,17 +104,6 @@ impl Renderer {
         }
     }
 
-    pub fn update_uniforms<F>(&mut self, index: usize, layer: usize, apply: F)
-    where
-        F: FnOnce(&mut Option<HashMap<String, Box<dyn Uniform>>>),
-    {
-        if let Some(layer) = self.layers.get_mut(&layer) {
-            if let Some(renderable) = layer.get_mut(index) {
-                apply(renderable.0.get_uniforms());
-            }
-        }
-    }
-
     pub fn disable_renderable(&mut self, index: usize, layer: usize) {
         if let Some(layer) = self.layers.get_mut(&layer) {
             if let Some(renderable) = layer.get_mut(index) {
@@ -113,31 +120,16 @@ impl Renderer {
         }
     }
 
-    pub fn add_renderable(&mut self, item: Box<dyn Renderable>, layer: usize) -> usize {
+    pub fn add_renderable<R: Renderable + 'static>(&mut self, item: R, layer: usize) -> usize {
         if self.sorted_layers.insert(layer) {
             self.layers.insert(layer, Vec::new());
         }
 
         let layer = self.layers.get_mut(&layer).unwrap();
-        layer.push((item, true));
+        layer.push((Box::new(item), true));
         layer.len() - 1
     }
-
-    #[inline]
-    pub fn add_to_draw<U: Into<Option<HashMap<String, Box<dyn Uniform>>>>>(
-        &mut self,
-        ibo: IndexBuffer,
-        vao: VertexArray,
-        shader: Shader,
-        uniforms: U,
-        layer: usize,
-    ) -> usize {
-        self.add_renderable(
-            Box::new(DefaultRenderable::new(ibo, vao, shader, uniforms.into())),
-            layer,
-        )
-    }
-
+    
     pub fn update(&mut self, gl: &GL) -> Option<()> {
         for layer_idx in self.sorted_layers.iter() {
             if let Some(layer) = self.layers.get_mut(layer_idx) {

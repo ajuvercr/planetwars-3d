@@ -7,3 +7,4 @@ use shader::Shader;
 mod buffer;
 
 pub mod renderer;
+pub mod uniform;

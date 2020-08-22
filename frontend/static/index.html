@@ -13,8 +13,7 @@
 
             (async function() {
                 await init();
-                let webGL = new WebGl("canvas");
-                console.log(webGL.init_renderer());
+                let webGL = await new WebGl("canvas").init_renderer();
     
                 function render(dt) {
                     let err = webGL.update();

@@ -13,6 +13,7 @@ use cgmath::{perspective, Deg, Matrix4, SquareMatrix, Vector3};
 use std::collections::HashMap;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
+use wasm_bindgen_futures::JsFuture;
 
 #[wasm_bindgen]
 pub struct WebGl {
@@ -28,14 +29,40 @@ unsafe impl Send for WebGl {}
 
 unsafe impl Sync for WebGl {}
 
+async fn fetch(url: &str) -> Result<String, JsValue> {
+    use web_sys::{Request, RequestInit, RequestMode, Response};
+
+    let mut opts = RequestInit::new();
+    opts.method("GET");
+    opts.mode(RequestMode::Cors);
+
+    let request = Request::new_with_str_and_init(url, &opts)?;
+
+    let window = web_sys::window().unwrap();
+    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
+
+    // `resp_value` is a `Response` object.
+    assert!(resp_value.is_instance_of::<Response>());
+    let resp: Response = resp_value.dyn_into().unwrap();
+
+    if !resp.ok() {
+        return Err(resp.into());
+    }
+
+    // Convert this other `Promise` into a rust `Future`.
+    let text = JsFuture::from(resp.text()?).await?.as_string().unwrap();
+
+    Ok(text)
+}
+
 #[wasm_bindgen]
 impl WebGl {
     #[wasm_bindgen(constructor)]
-    pub fn new(canvas_id: &str) -> Result<WebGl, JsValue> {
+    pub fn new(canvas_id: String) -> Result<WebGl, JsValue> {
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
         let canvas: HtmlCanvasElement = document
-            .get_element_by_id(canvas_id)
+            .get_element_by_id(&canvas_id)
             .unwrap()
             .dyn_into()
             .unwrap();
@@ -57,7 +84,7 @@ impl WebGl {
         })
     }
 
-    pub fn init_renderer(&mut self) -> Result<JsValue, JsValue> {
+    pub async fn init_renderer(mut self) -> Result<WebGl, JsValue> {
         // TODO add resize
         let canvas = &self.canvas;
         let gl = &self.gl;
@@ -81,10 +108,10 @@ impl WebGl {
 
         self.aspect = width as f32 / height as f32;
 
-        let vert_source = include_str!("./basic.vert");
-        let frag_source = include_str!("./basic.frag");
+        let vert_source =  fetch("shaders/basic.vert").await?;
+        let frag_source =  fetch("shaders/basic.frag").await?;
 
-        let shader = Shader::single(gl, frag_source, vert_source, HashMap::new())
+        let shader = Shader::single(gl, &frag_source, &vert_source, HashMap::new())
             .ok_or("Failed create shader")?;
 
         let (vertices, indices, layers) = sphere::gen_sphere_icosahedral(5.0);
@@ -110,7 +137,7 @@ impl WebGl {
             .renderer
             .add_to_draw(index_buffer, vao, shader, None, 0);
 
-        Ok("nice".into())
+        Ok(self)
     }
 
     pub fn update(&mut self) -> Result<(), JsValue> {

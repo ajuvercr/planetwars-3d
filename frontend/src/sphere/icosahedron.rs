@@ -28,7 +28,20 @@ pub fn gen_sphere_icosahedral(n: f32) -> (Vec<f32>, Vec<u16>, Vec<f32>) {
         Vector3::new(-t, 0.0, 1.0),
     ];
 
-    let mut layers = vec![n, n, n, n, n, n, n, n, n, n, n, n];
+    let mut layers = vec![
+        n - 0.1,
+        n - 0.1,
+        n - 0.1,
+        n - 0.1,
+        n - 0.1,
+        n - 0.1,
+        n - 0.1,
+        n - 0.1,
+        n - 0.1,
+        n - 0.1,
+        n - 0.1,
+        n - 0.1,
+    ];
 
     let mut triangles = vec![
         (0, 5, 11),
@@ -54,7 +67,7 @@ pub fn gen_sphere_icosahedral(n: f32) -> (Vec<f32>, Vec<u16>, Vec<f32>) {
     ];
 
     let mut i = n;
-    for _ in 0..(n as i32-1) {
+    for _ in 0..(n as i32 - 1) {
         i -= 1.0;
         triangles = gen_more(&mut verts, &mut layers, triangles, i);
     }
@@ -105,7 +118,7 @@ fn get_point(
         verts.push(new_vertex);
         cache.insert((i1, i2), new_index);
 
-        layers.push(layer);
+        layers.push(layer - 0.1);
 
         new_index
     }
@@ -147,12 +160,14 @@ fn pinch_triangles(
         let new_index = verts.len();
         verts.push((verts[triag.0] + verts[triag.1] + verts[triag.2]) / 3.0);
 
-        let l = layers[triag.0].min(layers[triag.1]).min(layers[triag.2]);
-        layers[triag.0] = 0.9;
-        layers[triag.1] = 0.9;
-        layers[triag.2] = 0.9;
+        // let l = layers[triag.0].min(layers[triag.1]).min(layers[triag.2]);
+        // layers[triag.0] = 0.9;
+        // layers[triag.1] = 0.9;
+        // layers[triag.2] = 0.9;
 
-        layers.push(0.0);
+        let l = (layers[triag.0] + layers[triag.1] + layers[triag.2]) / 3.0;
+        layers.push(l - 1.0);
+
         out.push((triag.0, triag.1, new_index));
         out.push((triag.1, triag.2, new_index));
         out.push((triag.2, triag.0, new_index));

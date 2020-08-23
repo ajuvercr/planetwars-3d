@@ -3,9 +3,12 @@ use super::{
     uniform::Uniform,
     Shader,
 };
-use std::{sync::mpsc, collections::{BTreeSet, HashMap}};
+use crate::uniform::{UniformUpdate, UniformsHandle};
+use std::{
+    collections::{BTreeSet, HashMap},
+    sync::mpsc,
+};
 use web_sys::WebGlRenderingContext as GL;
-use crate::uniform::{UniformsHandle, UniformUpdate};
 
 static SHOW_UNIFORMS: bool = false;
 
@@ -13,7 +16,6 @@ pub trait Renderable {
     fn render(&mut self, gl: &GL);
     fn update(&mut self, gl: &GL) -> Option<()>;
 }
-
 
 pub struct DefaultRenderable {
     ibo: IndexBuffer,
@@ -32,7 +34,6 @@ impl DefaultRenderable {
         shader: Shader,
         uniforms: U,
     ) -> Self {
-
         let (tx, rx) = mpsc::channel();
 
         Self {
@@ -40,7 +41,8 @@ impl DefaultRenderable {
             vao,
             shader,
             uniforms: uniforms.into().unwrap_or(HashMap::new()),
-            tx, rx,
+            tx,
+            rx,
         }
     }
 
@@ -55,10 +57,10 @@ impl Renderable for DefaultRenderable {
             match self.rx.try_recv() {
                 Ok(UniformUpdate::Batch(context)) => {
                     self.uniforms.extend(context.into_iter());
-                },
+                }
                 Ok(UniformUpdate::Single(name, uniform)) => {
                     self.uniforms.insert(name, uniform);
-                },
+                }
                 Err(mpsc::TryRecvError::Disconnected) => return None,
                 Err(mpsc::TryRecvError::Empty) => break,
             }
@@ -129,7 +131,7 @@ impl Renderer {
         layer.push((Box::new(item), true));
         layer.len() - 1
     }
-    
+
     pub fn update(&mut self, gl: &GL) -> Option<()> {
         for layer_idx in self.sorted_layers.iter() {
             if let Some(layer) = self.layers.get_mut(layer_idx) {

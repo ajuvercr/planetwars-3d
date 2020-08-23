@@ -5,15 +5,15 @@ use super::super::sphere;
 use super::{
     buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout},
     renderer::Renderer,
-    uniform::{Uniform1f},
+    uniform::Uniform1f,
     Shader,
 };
-use crate::{uniform::UniformsHandle, uniform::UniformMat4, renderer::DefaultRenderable};
+use crate::{renderer::DefaultRenderable, uniform::UniformMat4, uniform::UniformsHandle};
 use cgmath::{perspective, Deg, Matrix4, SquareMatrix, Vector3};
 use std::collections::HashMap;
+use wasm_bindgen_futures::JsFuture;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
-use wasm_bindgen_futures::JsFuture;
 
 #[wasm_bindgen]
 pub struct WebGl {
@@ -112,13 +112,13 @@ impl WebGl {
 
         self.aspect = width as f32 / height as f32;
 
-        let vert_source =  fetch("shaders/basic.vert").await?;
-        let frag_source =  fetch("shaders/basic.frag").await?;
+        let vert_source = fetch("shaders/basic.vert").await?;
+        let frag_source = fetch("shaders/basic.frag").await?;
 
         let shader = Shader::single(gl, &frag_source, &vert_source, HashMap::new())
             .ok_or("Failed create shader")?;
 
-        let (vertices, indices, layers) = sphere::gen_sphere_icosahedral(5.0);
+        let (vertices, indices, layers) = sphere::gen_sphere_icosahedral(3.0);
         console_log!("{} verts, {} indices", vertices.len(), indices.len());
 
         let vertex_buffer =
@@ -140,9 +140,7 @@ impl WebGl {
         let sphere_renderable = DefaultRenderable::new(index_buffer, vao, shader, None);
         self.sphere_uniforms = Some(sphere_renderable.handle());
 
-        self.sphere_index = self
-            .renderer
-            .add_renderable(sphere_renderable, 0);
+        self.sphere_index = self.renderer.add_renderable(sphere_renderable, 0);
 
         Ok(self)
     }
@@ -157,8 +155,7 @@ impl WebGl {
 
         // let camera_matrix = Matrix4::from_angle_y(Rad(std::f32::consts::PI));
         let camera_matrix = Matrix4::identity();
-        let camera_matrix =
-            camera_matrix + Matrix4::from_translation(Vector3::new(0.0, 0.0, 5.0));
+        let camera_matrix = camera_matrix + Matrix4::from_translation(Vector3::new(0.0, 0.0, 5.0));
         let view_matrix = camera_matrix.invert().unwrap();
 
         let view_projection_matrix = projection_matrix * view_matrix;

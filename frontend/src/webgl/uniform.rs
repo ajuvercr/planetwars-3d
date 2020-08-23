@@ -2,7 +2,7 @@ use web_sys::WebGlRenderingContext as GL;
 use web_sys::*;
 
 use cgmath::{Matrix4, Vector4};
-use std::{fmt::Debug, ops::Deref, collections::HashMap, sync::mpsc};
+use std::{collections::HashMap, fmt::Debug, ops::Deref, sync::mpsc};
 
 #[derive(Debug, Clone)]
 pub struct UniformsHandle {
@@ -10,13 +10,13 @@ pub struct UniformsHandle {
 }
 
 impl UniformsHandle {
-    pub fn new(tx:  mpsc::Sender<UniformUpdate>) -> Self {
-        Self {
-            inner: tx,
-        }
+    pub fn new(tx: mpsc::Sender<UniformUpdate>) -> Self {
+        Self { inner: tx }
     }
     pub fn single<S: Into<String>, U: Uniform + 'static>(&self, name: S, uniform: U) -> Option<()> {
-        self.inner.send(UniformUpdate::Single(name.into(), Box::new(uniform))).ok()
+        self.inner
+            .send(UniformUpdate::Single(name.into(), Box::new(uniform)))
+            .ok()
     }
     pub fn batch(&self, uniforms: HashMap<String, Box<dyn Uniform>>) -> Option<()> {
         self.inner.send(UniformUpdate::Batch(uniforms)).ok()

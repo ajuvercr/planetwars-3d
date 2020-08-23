@@ -1,7 +1,7 @@
 # What's next
 
-- cache newly created vertices in gen_more
-    - Potentially create better spheres, but certainly less cpu/gpu strain
+# cache newly created vertices in gen_more
+    # Potentially create better spheres, but certainly less cpu/gpu strain
 
 # get shaders from the web, for autoreload
     # Makes debugging shaders easier
@@ -10,4 +10,4 @@
     - Setup camera object
         - Setup eventhandelers from js to rust
             - Done working flying camera
-- idem with rendering context I guess?
+# idem with rendering context I guess?

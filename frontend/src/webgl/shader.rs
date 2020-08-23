@@ -1,8 +1,8 @@
 use web_sys::WebGlRenderingContext as GL;
 use web_sys::*;
 
-use std::collections::HashMap;
 use crate::uniform::Uniform;
+use std::collections::HashMap;
 
 fn load_shader(gl: &GL, shader_source: &str, shader_type: u32) -> Option<web_sys::WebGlShader> {
     let shader = gl.create_shader(shader_type)?;
@@ -153,4 +153,3 @@ impl Shader {
         gl.delete_program(Some(&self.shader));
     }
 }
-

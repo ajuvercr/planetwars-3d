@@ -13,13 +13,14 @@ void main() {
 
     v_layer = a_layer;
 
-    float time = u_time * 0.001;
+    float time = u_time * 0.0004;
+
     mat3 rot2 = mat3(
         cos(time), 0.0, sin(time),
         0.0, 1.0, 0.0,
         -sin(time), 0.0, cos(time));
 
-    time = time * 0.0;
+    time = time * 0.1;
     mat3 rot = mat3(
         1.0, 0.0, 0.0,
         0.0, cos(time), -sin(time),

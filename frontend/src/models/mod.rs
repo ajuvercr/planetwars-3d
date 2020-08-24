@@ -1,6 +1,7 @@
 // struct Rect([f32; 3], [f32; 3], [f32; 3], [f32; 3]);
 
 use crate::delaunay::Delaunay;
+use cgmath::Vector3;
 mod icosahedron;
 pub use icosahedron::*;
 
@@ -66,17 +67,17 @@ pub fn gen_cube() -> (Vec<f32>, Vec<f32>, Vec<u16>) {
     let verts = vec![
         1.0, 1.0, 1.0, 
         1.0, -1.0, 1.0, 
-        1.0, 1.0, -1.0, 
-        1.0, -1.0, -1.0, 
-        
-        -1.0, 1.0, 1.0, 
-        -1.0, -1.0, 1.0, 
-        -1.0, 1.0, -1.0, 
-        -1.0, -1.0, -1.0, 
-        
-        1.0, 1.0, 1.0, 
-        -1.0, 1.0, 1.0, 
         1.0, 1.0, -1.0,
+        1.0, -1.0, -1.0, 
+        
+        -1.0, 1.0, 1.0,
+        -1.0, 1.0, -1.0, 
+        -1.0, -1.0, 1.0, 
+        -1.0, -1.0, -1.0, 
+        
+        1.0, 1.0, 1.0, 
+        1.0, 1.0, -1.0,
+        -1.0, 1.0, 1.0, 
         -1.0, 1.0, -1.0, 
         
         1.0, -1.0, 1.0, 
@@ -90,30 +91,31 @@ pub fn gen_cube() -> (Vec<f32>, Vec<f32>, Vec<u16>) {
         -1.0, -1.0, 1.0, 
         
         1.0, 1.0, -1.0, 
-        -1.0, 1.0, -1.0,
         1.0, -1.0, -1.0, 
+        -1.0, 1.0, -1.0,
         -1.0, -1.0, -1.0,
     ];
 
     let mut normals = Vec::new();
-    for dir in vec![
-        [0.0, 0.0, 1.0],
-        [0.0, 0.0, -1.0],
-        [0.0, 1.0, 0.0],
-        [0.0, -1.0, 0.0],
-        [1.0, 0.0, 0.0],
-        [-1.0, 0.0, 0.0],
-    ] {
-        for _ in 0..4 {
-            normals.extend_from_slice(&dir);
-        }
-    }
 
     let mut ids = Vec::new();
 
     for i in 0..6 {
-        for v in &[0, 1, 2, 1, 2, 3] {
-            ids.push(v + 4 * i);
+        let (v1, v2, v3) = ((i * 4 + 0) * 3, (i * 4 + 1) * 3, (i * 4 + 2) * 3);
+        let normal = normalize(calc_normal(
+            Vector3::new(verts[v1 + 0], verts[v1 + 1], verts[v1 + 2]),
+            Vector3::new(verts[v2 + 0], verts[v2 + 1], verts[v2 + 2]),
+            Vector3::new(verts[v3 + 0], verts[v3 + 1], verts[v3 + 2]),
+        ));
+        let normal_ref = AsRef::<[f32; 3]>::as_ref(&normal);
+
+        normals.extend_from_slice(normal_ref);
+        normals.extend_from_slice(normal_ref);
+        normals.extend_from_slice(normal_ref);
+        normals.extend_from_slice(normal_ref);
+
+        for v in &[0, 1, 2, 1, 3, 2] {
+            ids.push(v + 4 * i as u16);
         }
     }
 

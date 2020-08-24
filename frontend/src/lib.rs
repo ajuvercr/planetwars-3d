@@ -11,7 +11,7 @@ pub mod entity;
 mod webgl;
 pub use webgl::*;
 
-pub mod sphere;
+pub mod models;
 
 pub mod delaunay;
 

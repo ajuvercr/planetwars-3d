@@ -287,6 +287,16 @@ mod vertex {
             }
         }
 
+        pub fn get_count(&self) -> i32 {
+            self.layouts
+                .iter()
+                .map(|l| l.elements.iter().map(|e| e.amount).sum::<i32>())
+                .zip(self.buffers.iter())
+                .map(|(s, b)| b.get_count() as i32 / s)
+                .min()
+                .unwrap()
+        }
+
         pub fn unbind(&self, gl: &GL, shader: &mut Shader) {
             for layout in &self.layouts {
                 for element in &layout.elements {

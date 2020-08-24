@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use super::super::sphere;
+use super::super::models;
 use super::{
     buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout},
     renderer::Renderer,
@@ -10,8 +10,8 @@ use super::{
 use crate::{
     entity::{Camera, CameraHandle, Entity},
     renderer::DefaultRenderable,
-    uniform::UniformMat4,
     uniform::UniformsHandle,
+    uniform::{Uniform3f, UniformMat4},
 };
 use cgmath::Vector3;
 use std::collections::HashMap;
@@ -24,8 +24,9 @@ pub struct WebGl {
     canvas: HtmlCanvasElement,
     gl: GL,
 
-    sphere_uniforms: Option<UniformsHandle>,
-    sphere_entity: Entity,
+    uniform_handles: Vec<UniformsHandle>,
+
+    entities: Vec<Entity>,
 
     camera: Camera,
     camera_handle: CameraHandle,
@@ -83,10 +84,6 @@ impl WebGl {
             .dyn_into()
             .unwrap();
 
-        let sphere_entity = Entity::default()
-            .with_position(Vector3::new(0.0, 0.0, -5.0))
-            .with_ang_speed(Vector3::new(30.0, 60.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
-
         let camera = Camera::new();
         let camera_handle = camera.handle();
         // camera_handle.reset_position(0.0, 0.0, 5.0);
@@ -95,8 +92,8 @@ impl WebGl {
             canvas,
             gl,
 
-            sphere_uniforms: None,
-            sphere_entity,
+            uniform_handles: Vec::new(),
+            entities: Vec::new(),
 
             camera,
             camera_handle,
@@ -130,7 +127,7 @@ impl WebGl {
 
         // Turn on culling. By default backfacing triangles
         // will be culled.
-        // gl.enable(GL::CULL_FACE);
+        gl.enable(GL::CULL_FACE);
 
         // Enable the depth buffer
         gl.enable(GL::DEPTH_TEST);
@@ -138,32 +135,97 @@ impl WebGl {
         let vert_source = fetch("shaders/basic.vert").await?;
         let frag_source = fetch("shaders/basic.frag").await?;
 
-        let shader = Shader::single(gl, &frag_source, &vert_source, HashMap::new())
-            .ok_or("Failed create shader")?;
+        let shader_factory = Shader::factory(frag_source, vert_source);
 
-        let (vertices, indices, layers) = sphere::gen_sphere_icosahedral(3.0);
-        console_log!("{} verts, {} indices", vertices.len(), indices.len());
+        // Setup sphere
+        let sphere_entity = Entity::default()
+            .with_position(Vector3::new(0.0, 0.0, -5.0))
+            .with_ang_speed(Vector3::new(30.0, 60.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
+        self.entities.push(sphere_entity);
+
+        let vertices = models::gen_sphere_icosahedral(5.0);
+        console_log!("Verts count {}", vertices.len() / 6);
 
         let vertex_buffer =
             VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
-        let layer_buffer = VertexBuffer::vertex_buffer(gl, layers).ok_or("Failed to get layers")?;
-        let index_buffer =
-            IndexBuffer::index_buffer(gl, indices).ok_or("Failed to get indicies")?;
+
+        let mut layout = VertexBufferLayout::new();
+        layout.push(GL::FLOAT, 3, 4, "a_position", false);
+        layout.push(GL::FLOAT, 3, 4, "a_normal", false);
+
+        let mut vao = VertexArray::new();
+        vao.add_buffer(vertex_buffer, layout);
+
+        let shader = shader_factory
+            .create_shader(gl, HashMap::new())
+            .ok_or("failed to create new shader")?;
+        let sphere_renderable = DefaultRenderable::new(None, vao, shader, None);
+        self.uniform_handles.push(sphere_renderable.handle());
+        self.renderer.add_renderable(sphere_renderable, 0);
+
+        // Setup sphere2
+        let sphere_entity = Entity::default()
+            .with_position(Vector3::new(-5.0, 0.0, -5.0))
+            .with_ang_speed(Vector3::new(30.0, 60.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
+        self.entities.push(sphere_entity);
+
+        let vertices = models::gen_sphere_icosahedral(1.0);
+        console_log!("Verts count {}", vertices.len() / 6);
+
+        let vertex_buffer =
+            VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
+
+        let mut layout = VertexBufferLayout::new();
+        layout.push(GL::FLOAT, 3, 4, "a_position", false);
+        layout.push(GL::FLOAT, 3, 4, "a_normal", false);
+
+        let mut vao = VertexArray::new();
+        vao.add_buffer(vertex_buffer, layout);
+
+        let shader = shader_factory
+            .create_shader(gl, HashMap::new())
+            .ok_or("failed to create new shader")?;
+        let sphere_renderable = DefaultRenderable::new(None, vao, shader, None);
+        self.uniform_handles.push(sphere_renderable.handle());
+        self.renderer.add_renderable(sphere_renderable, 0);
+
+        // Setup cube
+        let cube_entity = Entity::default()
+            .with_position(Vector3::new(5.0, 0.0, -5.0))
+            .with_ang_speed(Vector3::new(10.0, 30.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
+        self.entities.push(cube_entity);
+
+        let (vertices, normals, indx) = models::gen_cube();
+        console_log!("Verts count {}, index count {}", vertices.len(), indx.len());
+        let index_buffer = IndexBuffer::index_buffer(gl, indx).ok_or("Failed to get indicies")?;
+        let vertex_buffer =
+            VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
+        let normal_buffer =
+            VertexBuffer::vertex_buffer(gl, normals).ok_or("Failed to get vertices")?;
 
         let mut layout = VertexBufferLayout::new();
         layout.push(GL::FLOAT, 3, 4, "a_position", false);
 
-        let mut layer_layout = VertexBufferLayout::new();
-        layer_layout.push(GL::FLOAT, 1, 4, "a_layer", false);
+        let mut normal_layout = VertexBufferLayout::new();
+        normal_layout.push(GL::FLOAT, 3, 4, "a_normal", false);
 
         let mut vao = VertexArray::new();
         vao.add_buffer(vertex_buffer, layout);
-        vao.add_buffer(layer_buffer, layer_layout);
+        vao.add_buffer(normal_buffer, normal_layout);
 
-        let sphere_renderable = DefaultRenderable::new(index_buffer, vao, shader, None);
-        self.sphere_uniforms = Some(sphere_renderable.handle());
+        let shader = shader_factory
+            .create_shader(gl, HashMap::new())
+            .ok_or("failed to create new shader")?;
+        let cube_renderable = DefaultRenderable::new(index_buffer, vao, shader, None);
+        self.uniform_handles.push(cube_renderable.handle());
+        self.renderer.add_renderable(cube_renderable, 0);
 
-        self.renderer.add_renderable(sphere_renderable, 0);
+        for uniform_handle in &mut self.uniform_handles {
+            uniform_handle.single(
+                "u_reverseLightDirection",
+                Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
+            );
+        }
 
         Ok(self)
     }
@@ -172,18 +234,15 @@ impl WebGl {
         self.camera.update().ok_or("Couldn't update camera")?;
         let gl = &self.gl;
 
-        self.sphere_entity.update(dt as f32);
+        for (uniform_handle, entity) in self.uniform_handles.iter().zip(self.entities.iter_mut()) {
+            entity.update(dt as f32);
 
-        let uniforms_handle = self.sphere_uniforms.as_mut().unwrap();
-
-        uniforms_handle.single(
-            "u_worldViewProjection",
-            UniformMat4::new_mat4(self.camera.world_view_projection_matrix()),
-        );
-        uniforms_handle.single(
-            "u_world",
-            UniformMat4::new_mat4(self.sphere_entity.world_matrix()),
-        );
+            uniform_handle.single(
+                "u_worldViewProjection",
+                UniformMat4::new_mat4(self.camera.world_view_projection_matrix()),
+            );
+            uniform_handle.single("u_world", UniformMat4::new_mat4(entity.world_matrix()));
+        }
 
         self.renderer
             .update(gl)

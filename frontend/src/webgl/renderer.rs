@@ -18,7 +18,7 @@ pub trait Renderable {
 }
 
 pub struct DefaultRenderable {
-    ibo: IndexBuffer,
+    ibo: Option<IndexBuffer>,
     vao: VertexArray,
     shader: Shader,
     uniforms: HashMap<String, Box<dyn Uniform>>,
@@ -28,8 +28,8 @@ pub struct DefaultRenderable {
 }
 
 impl DefaultRenderable {
-    pub fn new<U: Into<Option<HashMap<String, Box<dyn Uniform>>>>>(
-        ibo: IndexBuffer,
+    pub fn new<I: Into<Option<IndexBuffer>>, U: Into<Option<HashMap<String, Box<dyn Uniform>>>>>(
+        ibo: I,
         vao: VertexArray,
         shader: Shader,
         uniforms: U,
@@ -37,7 +37,7 @@ impl DefaultRenderable {
         let (tx, rx) = mpsc::channel();
 
         Self {
-            ibo,
+            ibo: ibo.into(),
             vao,
             shader,
             uniforms: uniforms.into().unwrap_or(HashMap::new()),
@@ -65,7 +65,10 @@ impl Renderable for DefaultRenderable {
                 Err(mpsc::TryRecvError::Empty) => break,
             }
         }
-        self.ibo.flush(gl)?;
+        if let Some(ibo) = &mut self.ibo {
+            ibo.flush(gl)?;
+        }
+
         self.vao.update(gl)?;
         Some(())
     }
@@ -81,14 +84,14 @@ impl Renderable for DefaultRenderable {
         }
 
         self.vao.bind(gl, &mut self.shader);
-        self.ibo.bind(gl);
 
-        gl.draw_elements_with_i32(
-            GL::TRIANGLES,
-            self.ibo.get_count() as i32,
-            GL::UNSIGNED_SHORT,
-            0,
-        );
+        if let Some(ibo) = &self.ibo {
+            ibo.bind(gl);
+
+            gl.draw_elements_with_i32(GL::TRIANGLES, ibo.get_count() as i32, GL::UNSIGNED_SHORT, 0);
+        } else {
+            gl.draw_arrays(GL::TRIANGLES, 0, self.vao.get_count())
+        }
     }
 }
 
@@ -123,13 +126,22 @@ impl Renderer {
     }
 
     pub fn add_renderable<R: Renderable + 'static>(&mut self, item: R, layer: usize) -> usize {
+        console_log!("Adding renderable");
         if self.sorted_layers.insert(layer) {
             self.layers.insert(layer, Vec::new());
         }
 
         let layer = self.layers.get_mut(&layer).unwrap();
         layer.push((Box::new(item), true));
-        layer.len() - 1
+        let out = layer.len() - 1;
+
+        console_log!("Layers keys {:?}", self.layers.keys());
+        console_log!(
+            "Layers coun {:?}",
+            self.layers.values().map(|l| l.len()).collect::<Vec<_>>()
+        );
+
+        out
     }
 
     pub fn update(&mut self, gl: &GL) -> Option<()> {

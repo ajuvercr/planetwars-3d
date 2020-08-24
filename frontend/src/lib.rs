@@ -21,6 +21,12 @@ extern "C" {
     pub fn log(s: &str);
 }
 
+#[wasm_bindgen(module = "/static/defines.js")]
+extern "C" {
+    #[wasm_bindgen]
+    fn set_info(x: f32, y: f32, z: f32, angl_x: f32, angl_y: f32, angl_z: f32);
+}
+
 //
 // #[wasm_bindgen(start)]
 // pub fn main() -> Result<(), JsValue> {

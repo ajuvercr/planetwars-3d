@@ -7,7 +7,14 @@
     # Makes debugging shaders easier
 
 # let buffers be manipulated with mpsc's
-    - Setup camera object
-        - Setup eventhandelers from js to rust
-            - Done working flying camera
+    # Setup camera object
+        # Setup eventhandelers from js to rust
+            # Done working flying camera
 # idem with rendering context I guess?
+
+
+There are still some issues with the camera, but it should be more clear when lighting and such is added, so you can play in a cube.
+
+- Add extra flying mechanics, like boosts etc.
+- Do what we actually wanted todo and generate planets on the GPU.
+- Generic settings menu please?

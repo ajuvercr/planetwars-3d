@@ -1,5 +1,9 @@
 import init, { WebGl, CameraHandle } from "./wasm.js"
 
+const MOV_SPEED = 1000;
+const SENSITIVITY_X = 50;
+const SENSITIVITY_Y = 50;
+
 window.addEventListener("gamepadconnected", connecthandler);
 window.addEventListener("gamepaddisconnected", disconnecthandler);
 
@@ -80,25 +84,23 @@ async function doInit() {
 
     function handleInput(dt) {
         handle.add_position(
-            (movement.right ? 10 * dt : 0) + (movement.left ? -10 * dt : 0),
-            (movement.up ? 10 * dt : 0) + (movement.down ? -10 * dt : 0),
-            (movement.forward ? 10 * dt : 0) + (movement.back ? -10 * dt : 0),
+            (movement.right ? MOV_SPEED * dt : 0) + (movement.left ? -MOV_SPEED * dt : 0),
+            (movement.up ? MOV_SPEED * dt : 0) + (movement.down ? -MOV_SPEED * dt : 0),
+            (movement.forward ? MOV_SPEED * dt : 0) + (movement.back ? -MOV_SPEED * dt : 0),
         );
 
         for (let j in controllers) {
             var controller = controllers[j];
             const axes = controller.axes;
             handle.add_position(
-                (axes[0] * axes[0] > 0.02 ? axes[0] * dt: 0),
+                (axes[0] * axes[0] > 0.02 ? axes[0] * MOV_SPEED * dt: 0),
                 0.0,
-                (axes[1] * axes[1] > 0.02 ? axes[1] * dt: 0),
-
-                (Math.round(10 * (axes[1] + Number.EPSILON)) / 10) * dt,
+                (axes[1] * axes[1] > 0.02 ? axes[1] * MOV_SPEED * dt: 0),
             );
 
             handle.add_angle(
-                (axes[3] * axes[3] > 0.02 ? -50 * axes[3] * dt: 0),
-                (axes[2] * axes[2] > 0.02 ? -50 * axes[2] * dt: 0),
+                (axes[3] * axes[3] > 0.02 ? -SENSITIVITY_X * axes[3] * dt: 0),
+                (axes[2] * axes[2] > 0.02 ? -SENSITIVITY_Y * axes[2] * dt: 0),
                 0.0,
             );
         }

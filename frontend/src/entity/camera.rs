@@ -1,9 +1,5 @@
 use crate::set_info;
-use cgmath::{
-    perspective,
-    prelude::{SquareMatrix, Zero},
-    Deg, Euler, Matrix4, Vector3,
-};
+use cgmath::{perspective, prelude::SquareMatrix, Deg, Matrix3, Matrix4, Vector3};
 use std::sync::mpsc;
 use wasm_bindgen::prelude::*;
 
@@ -71,8 +67,8 @@ pub struct Camera {
     fov: f32,
 
     position: Vector3<f32>,
-    rotation: Vector3<f32>,
 
+    rotation: Vector3<f32>,
     world_view_projection_matrix: Matrix4<f32>,
     projection_matrix: Matrix4<f32>,
 
@@ -86,13 +82,13 @@ impl Camera {
         let projection_matrix = perspective(Deg(90.0), 1.0, 0.2, 2000.0);
 
         Camera {
-            near: 0.2,
+            near: 0.5,
             far: 2000.0,
-            fov: 90.0,
+            fov: 120.0,
             aspect: 1.0,
             world_view_projection_matrix: Matrix4::identity(),
-            position: Vector3::zero(),
-            rotation: Vector3::zero(),
+            position: Vector3::new(0.0, 0.0, 0.0),
+            rotation: Vector3::new(0.0, 0.0, 0.0),
             tx,
             rx,
             projection_matrix,
@@ -100,7 +96,8 @@ impl Camera {
     }
 
     fn reset_projection(&mut self) {
-        self.projection_matrix = perspective(Deg(90.0), self.aspect, self.near, self.far);
+        // self.projection_matrix = frustum(-0.5 * self.aspect, 0.5 * self.aspect, -0.5, 0.5, self.near, self.far);
+        self.projection_matrix = perspective(Deg(45.0), self.aspect, self.near, self.far);
     }
 
     fn reset_world_view_projection_matrix(&mut self) {
@@ -109,9 +106,9 @@ impl Camera {
     }
 
     fn world_matrix(&self) -> Matrix4<f32> {
-        let Vector3 { x, y, z } = self.rotation;
-        let rot: Matrix4<_> = Euler::new(Deg(x), Deg(y), Deg(z)).into();
-        Matrix4::from_translation(self.position) * rot
+        let rotation = Matrix4::from_angle_y(Deg(self.rotation.y))
+            * Matrix4::from_angle_x(Deg(self.rotation.x));
+        Matrix4::from_translation(self.position) * rotation
     }
 
     pub fn handle(&self) -> CameraHandle {
@@ -134,11 +131,14 @@ impl Camera {
                     reset_world = true;
                 }
                 Ok(CameraEvent::AddPosition(delta)) => {
-                    self.position += (self.world_matrix() * delta.extend(0.0)).truncate();
+                    let rotation = Matrix3::from_angle_x(Deg(self.rotation.x))
+                        * Matrix3::from_angle_y(Deg(self.rotation.y));
+                    self.position += rotation * delta;
+                    // self.position += delta;
                     reset_world = true;
                 }
-                Ok(CameraEvent::ResetPosition(position)) => {
-                    self.position = position;
+                Ok(CameraEvent::ResetPosition(Vector3 { x, y, z })) => {
+                    self.position = Vector3::new(x, y, z);
                     reset_world = true;
                 }
                 Ok(CameraEvent::SetAspect(aspect)) => {

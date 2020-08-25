@@ -1,10 +1,12 @@
-use cgmath::{prelude::Zero, Angle, Deg, Euler, Matrix4, Vector3};
+use cgmath::{prelude::Zero, Angle, Deg, Euler, Matrix4, SquareMatrix, Vector3};
 
 pub struct Entity {
     position: Vector3<f32>,
     speed: Vector3<f32>,
     rotation: Vector3<f32>,
     ang_speed: Vector3<f32>,
+
+    scale: Matrix4<f32>,
 }
 
 impl Default for Entity {
@@ -14,6 +16,7 @@ impl Default for Entity {
             speed: Vector3::zero(),
             ang_speed: Vector3::zero(),
             rotation: Vector3::zero(),
+            scale: Matrix4::identity(),
         }
     }
 }
@@ -39,6 +42,16 @@ impl Entity {
         self
     }
 
+    pub fn with_hom_scale(mut self, s: f32) -> Self {
+        self.scale = Matrix4::from_scale(s);
+        self
+    }
+
+    pub fn with_scale(mut self, x: f32, y: f32, z: f32) -> Self {
+        self.scale = Matrix4::from_nonuniform_scale(x, y, z);
+        self
+    }
+
     pub fn rotation(&self) -> Matrix4<f32> {
         let Vector3 { x, y, z } = self.rotation;
         Euler::new(Deg(x), Deg(y), Deg(z)).into()
@@ -60,6 +73,6 @@ impl Entity {
     /// Matrix to transform vertices to the correct location in the world
     #[inline]
     pub fn world_matrix(&self) -> Matrix4<f32> {
-        Matrix4::from_translation(self.position) * self.rotation()
+        Matrix4::from_translation(self.position) * self.rotation() * self.scale
     }
 }

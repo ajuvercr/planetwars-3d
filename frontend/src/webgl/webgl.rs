@@ -139,7 +139,8 @@ impl WebGl {
 
         // Setup sphere
         let sphere_entity = Entity::default()
-            .with_position(Vector3::new(0.0, 0.0, -5.0))
+            .with_position(Vector3::new(0.0, 0.0, -500.0))
+            .with_hom_scale(50.0)
             .with_ang_speed(Vector3::new(30.0, 60.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
         self.entities.push(sphere_entity);
 
@@ -165,7 +166,8 @@ impl WebGl {
 
         // Setup sphere2
         let sphere_entity = Entity::default()
-            .with_position(Vector3::new(-5.0, 0.0, -5.0))
+            .with_position(Vector3::new(-500.0, 0.0, -500.0))
+            .with_hom_scale(50.0)
             .with_ang_speed(Vector3::new(30.0, 60.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
         self.entities.push(sphere_entity);
 
@@ -191,8 +193,40 @@ impl WebGl {
 
         // Setup cube
         let cube_entity = Entity::default()
-            .with_position(Vector3::new(5.0, 0.0, -5.0))
+            .with_position(Vector3::new(500.0, 0.0, -500.0))
+            .with_hom_scale(50.0)
             .with_ang_speed(Vector3::new(10.0, 30.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
+        self.entities.push(cube_entity);
+
+        let (vertices, normals, indx) = models::gen_cube();
+        console_log!("Verts count {}, index count {}", vertices.len(), indx.len());
+        let index_buffer = IndexBuffer::index_buffer(gl, indx).ok_or("Failed to get indicies")?;
+        let vertex_buffer =
+            VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
+        let normal_buffer =
+            VertexBuffer::vertex_buffer(gl, normals).ok_or("Failed to get vertices")?;
+
+        let mut layout = VertexBufferLayout::new();
+        layout.push(GL::FLOAT, 3, 4, "a_position", false);
+
+        let mut normal_layout = VertexBufferLayout::new();
+        normal_layout.push(GL::FLOAT, 3, 4, "a_normal", false);
+
+        let mut vao = VertexArray::new();
+        vao.add_buffer(vertex_buffer, layout);
+        vao.add_buffer(normal_buffer, normal_layout);
+
+        let shader = shader_factory
+            .create_shader(gl, HashMap::new())
+            .ok_or("failed to create new shader")?;
+        let cube_renderable = DefaultRenderable::new(index_buffer, vao, shader, None);
+        self.uniform_handles.push(cube_renderable.handle());
+        self.renderer.add_renderable(cube_renderable, 0);
+
+        // Setup floor
+        let cube_entity = Entity::default()
+            .with_position(Vector3::new(0.0, -100.0, 0.0))
+            .with_scale(5000.0, 5.0, 5000.0);
         self.entities.push(cube_entity);
 
         let (vertices, normals, indx) = models::gen_cube();

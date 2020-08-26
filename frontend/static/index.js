@@ -15,8 +15,94 @@ function connecthandler(e) {
     controllers[e.gamepad.index] = e.gamepad;
 }
 
+function _genNamedDiv(name) {
+    const div = document.createElement("div");
+    div.classList.add("field");
+
+    const nameField = document.createElement("p");
+    nameField.innerText = name;
+    div.appendChild(nameField);
+    return div;
+}
+
+function genField(name, value, readOnly=false) {
+    const div = _genNamedDiv(name);
+
+    const valueField = document.createElement("input");
+    valueField.classList.add("input");
+    valueField.readOnly = readOnly;
+    valueField.type = "text";
+
+    const changeText = (t) => valueField.value = t;
+    changeText(value);
+
+    div.appendChild(valueField);
+    return [div, changeText];
+}
+
+function genSlider(name, value, min, max, readOnly=false) {
+    const div = _genNamedDiv(name);
+
+    const valueField = document.createElement("input");
+    valueField.classList.add("input");
+    valueField.readOnly = readOnly;
+    valueField.type = "range";
+    valueField.min = min;
+    valueField.max = max;
+
+    const changeText = (t) => valueField.value = t;
+    changeText(value);
+
+    div.appendChild(valueField);
+    return [div, changeText];
+}
+
+function genVec3(name, value, min=0, max=1, inc=0.01, readOnly=false) {
+    const div = _genNamedDiv(name);
+   
+    const vecDiv =  document.createElement("div");
+    vecDiv.classList.add("vec3");
+    vecDiv.classList.add("input");
+
+    function genSmallField(div, className) {
+        const wrapper = document.createElement("div");
+        wrapper.classList.add(className);
+        wrapper.classList.add("part");
+
+        const field = document.createElement("input");
+        field.readOnly = readOnly;
+        field.type = "number";
+
+        field.min = min;
+        field.max=max;
+        field.step = inc;
+
+        wrapper.appendChild(field);
+        div.appendChild(wrapper);
+        
+        return field;
+    }
+
+    const xField = genSmallField(vecDiv, "x");
+    const yField = genSmallField(vecDiv, "y");
+    const zField = genSmallField(vecDiv, "z");
+
+    const changeText = (t) => {
+        xField.value = t[0];
+        yField.value = t[1];
+        zField.value = t[2];
+    };
+    changeText(value);
+
+    div.appendChild(vecDiv);
+
+    return [div, changeText];
+}
+
+
 const controllers = {};
 function scangamepads() {
+    gamepadS
     var gamepads = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads() : []);
     for (var i = 0; i < gamepads.length; i++) {
         if (gamepads[i]) {
@@ -41,6 +127,7 @@ const movement = {
 async function doInit() {
     await init();
 
+    const settingsDiv = document.getElementById("settings");
     const canvas = document.getElementById("canvas");
 
     let webGL = await new WebGl("canvas").init_renderer();
@@ -118,6 +205,11 @@ async function doInit() {
         window.requestAnimationFrame(render);
     }
     window.requestAnimationFrame(render);
+
+    settingsDiv.appendChild(genField("Planet Name: ", "Oppo")[0]);
+    settingsDiv.appendChild(genSlider("Wooble: ", 3, 0, 10)[0]);
+    settingsDiv.appendChild(genVec3("Vec: ", [0.2, 0.5, 1.0])[0]);
+
 }
 
 doInit();

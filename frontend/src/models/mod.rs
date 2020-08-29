@@ -121,3 +121,61 @@ pub fn gen_cube() -> (Vec<f32>, Vec<f32>, Vec<u16>) {
 
     (verts, normals, ids)
 }
+
+pub fn gen_circle(inner_diameter: f32, diamond_count: usize) -> Vec<f32> {
+    let mut verts = Vec::new();
+
+    let angle_per_diamond = std::f32::consts::PI * 2.0 / diamond_count as f32;
+    let half_angle_per_diamond = angle_per_diamond * 0.5;
+
+    let middle_diameter = (inner_diameter + 1.0) * 0.5;
+
+    {
+        let verts = &mut verts;
+        let mut current_addition = 0;
+
+        let mut add_point_on_circle = move |angle: f32, radius: f32| {
+            let (y, x) = angle.sin_cos();
+            verts.push(x * radius);
+            verts.push(y * radius);
+            verts.push(0.0);
+
+            if current_addition/3 % 2 == 0 {
+                verts.extend_from_slice(&[0.0, 1.0, 0.0]);
+            } else {
+                verts.extend_from_slice(&[1.0, 0.0, 0.0]);
+            }
+
+            current_addition += 1;
+        };
+
+        for i in 0..diamond_count {
+            let angle = angle_per_diamond * i as f32;
+
+            let prev_angle = angle - half_angle_per_diamond;
+            let next_angle = angle + half_angle_per_diamond;
+
+            // Top diamond part
+            add_point_on_circle(angle, 1.0);
+            add_point_on_circle(next_angle, middle_diameter);
+            add_point_on_circle(prev_angle, middle_diameter);
+
+            // Add top triangle
+            add_point_on_circle(angle, 1.0);
+            add_point_on_circle(angle + angle_per_diamond, 1.0);
+            add_point_on_circle(next_angle, middle_diameter);
+
+            // Lower diamond part
+            add_point_on_circle(angle, inner_diameter);
+            add_point_on_circle(prev_angle, middle_diameter);
+            add_point_on_circle(next_angle, middle_diameter);
+
+            // Add lower triangle
+            add_point_on_circle(next_angle, middle_diameter);
+            add_point_on_circle(angle + angle_per_diamond, inner_diameter);
+            add_point_on_circle(angle, inner_diameter);
+        }
+    }
+
+    verts
+}

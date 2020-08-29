@@ -254,6 +254,35 @@ impl WebGl {
         self.uniform_handles.push(cube_renderable.handle());
         self.renderer.add_renderable(cube_renderable, 0);
 
+        // Setup fancy circle
+        let circle_thing = Entity::default()
+            .with_position(Vector3::new(0.0, 0.0, -200.0))
+            .with_hom_scale(50.0);
+        self.entities.push(circle_thing);
+
+        let vertices = models::gen_circle(0.5, 8 * 4);
+        let vertex_buffer =
+            VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
+
+        let mut layout = VertexBufferLayout::new();
+        layout.push(GL::FLOAT, 3, 4, "a_position", false);
+        layout.push(GL::FLOAT, 3, 4, "a_color", false);
+
+        let mut vao = VertexArray::new();
+        vao.add_buffer(vertex_buffer, layout);
+
+        // TODO: This needs to change too
+        let shader = Shader::single(
+            gl,
+            &fetch("shaders/circle.frag").await?,
+            &fetch("shaders/circle.vert").await?,
+            HashMap::new(),
+        )
+        .ok_or("failed to create new shader")?;
+        let circle_thing = DefaultRenderable::new(None, vao, shader, None);
+        self.uniform_handles.push(circle_thing.handle());
+        self.renderer.add_renderable(circle_thing, 0);
+
         for uniform_handle in &mut self.uniform_handles {
             uniform_handle.single(
                 "u_reverseLightDirection",

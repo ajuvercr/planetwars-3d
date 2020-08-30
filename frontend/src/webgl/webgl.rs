@@ -10,6 +10,8 @@ use super::{
 use crate::{
     entity::{Camera, CameraHandle, Entity},
     renderer::DefaultRenderable,
+    set_settings,
+    settings::Settings,
     uniform::UniformsHandle,
     uniform::{Uniform3f, UniformMat4},
 };
@@ -290,7 +292,18 @@ impl WebGl {
             );
         }
 
+        let mut settings = Settings::new();
+        settings.add_slider("Slidy into dm's", 3.0, 0.0, 5.0, 0.2);
+        settings.add_text("Who's?", "Bauke");
+        settings.add_vec3("Someone's", [0.2, 0.5, 0.8], 0.0, 1.0, 0.01);
+
+        unsafe { set_settings(settings.into_js()) };
+
         Ok(self)
+    }
+
+    pub fn handle_client_update(&mut self, val: &JsValue) {
+        console_log!("Got client update {:?}", val);
     }
 
     pub fn update(&mut self, dt: f64) -> Result<(), JsValue> {

@@ -140,7 +140,7 @@ pub fn gen_circle(inner_diameter: f32, diamond_count: usize) -> Vec<f32> {
             verts.push(y * radius);
             verts.push(0.0);
 
-            if current_addition/3 % 2 == 0 {
+            if current_addition / 3 % 2 == 0 {
                 verts.extend_from_slice(&[0.0, 1.0, 0.0]);
             } else {
                 verts.extend_from_slice(&[1.0, 0.0, 0.0]);

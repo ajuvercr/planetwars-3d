@@ -126,7 +126,6 @@ impl Renderer {
     }
 
     pub fn add_renderable<R: Renderable + 'static>(&mut self, item: R, layer: usize) -> usize {
-        console_log!("Adding renderable");
         if self.sorted_layers.insert(layer) {
             self.layers.insert(layer, Vec::new());
         }
@@ -134,12 +133,6 @@ impl Renderer {
         let layer = self.layers.get_mut(&layer).unwrap();
         layer.push((Box::new(item), true));
         let out = layer.len() - 1;
-
-        console_log!("Layers keys {:?}", self.layers.keys());
-        console_log!(
-            "Layers coun {:?}",
-            self.layers.values().map(|l| l.len()).collect::<Vec<_>>()
-        );
 
         out
     }

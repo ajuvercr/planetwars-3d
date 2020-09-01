@@ -3,7 +3,7 @@ use wasm_bindgen::JsCast;
 
 use super::super::models;
 use super::{
-    buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout},
+    buffer::{BufferHandle, IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout},
     renderer::Renderer,
     Shader,
 };
@@ -21,10 +21,14 @@ use wasm_bindgen_futures::JsFuture;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
 
+use serde::{Deserialize, Serialize};
+
 #[wasm_bindgen]
 pub struct WebGl {
     canvas: HtmlCanvasElement,
     gl: GL,
+
+    circle_handle: Option<BufferHandle<Vec<f32>>>,
 
     uniform_handles: Vec<UniformsHandle>,
 
@@ -99,6 +103,8 @@ impl WebGl {
 
             camera,
             camera_handle,
+
+            circle_handle: None,
 
             renderer: Renderer::new(),
         })
@@ -266,6 +272,8 @@ impl WebGl {
         let vertex_buffer =
             VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
 
+        self.circle_handle = Some(vertex_buffer.handle());
+
         let mut layout = VertexBufferLayout::new();
         layout.push(GL::FLOAT, 3, 4, "a_position", false);
         layout.push(GL::FLOAT, 3, 4, "a_color", false);
@@ -293,9 +301,10 @@ impl WebGl {
         }
 
         let mut settings = Settings::new();
-        settings.add_slider("Slidy into dm's", 3.0, 0.0, 5.0, 0.2);
-        settings.add_text("Who's?", "Bauke");
-        settings.add_vec3("Someone's", [0.2, 0.5, 0.8], 0.0, 1.0, 0.01);
+        settings.add_slider("inner_diameter", "Slidy into dm's", 0.4, 0.0, 1.0, 0.01);
+        settings.add_slider("count", "Count", 12.0, 0.0, 16.0 * 8.0, 1.0);
+        // settings.add_text("text", "Who's?", "Bauke");
+        // settings.add_vec3("vector","Someone's", [0.2, 0.5, 0.8], 0.0, 1.0, 0.01);
 
         unsafe { set_settings(settings.into_js()) };
 
@@ -303,7 +312,24 @@ impl WebGl {
     }
 
     pub fn handle_client_update(&mut self, val: &JsValue) {
-        console_log!("Got client update {:?}", val);
+        #[derive(Serialize, Deserialize, Debug)]
+        struct Settings {
+            // text: String,
+            // vector: [f32;3],
+            inner_diameter: f32,
+            count: f32,
+        };
+
+        if let Some(settings) = val.into_serde::<Settings>().ok() {
+            console_log!("Settings update {:?}", settings);
+
+            if let Some(handle) = &self.circle_handle {
+                handle.reset(models::gen_circle(
+                    settings.inner_diameter,
+                    settings.count as usize,
+                ));
+            }
+        }
     }
 
     pub fn update(&mut self, dt: f64) -> Result<(), JsValue> {

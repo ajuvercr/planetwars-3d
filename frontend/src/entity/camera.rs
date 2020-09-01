@@ -131,10 +131,9 @@ impl Camera {
                     reset_world = true;
                 }
                 Ok(CameraEvent::AddPosition(delta)) => {
-                    let rotation = Matrix3::from_angle_x(Deg(self.rotation.x))
-                        * Matrix3::from_angle_y(Deg(self.rotation.y));
+                    let rotation = Matrix3::from_angle_y(Deg(self.rotation.y))
+                        * Matrix3::from_angle_x(Deg(self.rotation.x));
                     self.position += rotation * delta;
-                    // self.position += delta;
                     reset_world = true;
                 }
                 Ok(CameraEvent::ResetPosition(Vector3 { x, y, z })) => {

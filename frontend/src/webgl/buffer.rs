@@ -1,4 +1,4 @@
-pub use buffer::{Buffer, BufferTrait, IndexBuffer, VertexBuffer};
+pub use buffer::{Buffer, BufferHandle, BufferTrait, IndexBuffer, VertexBuffer};
 mod buffer {
     use std::ops::Deref;
 

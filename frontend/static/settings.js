@@ -31,7 +31,7 @@ function genField(name, value, cb = (e) => {}, readOnly=false) {
     return [div, changeText];
 }
 
-function genSlider(name, value, min, max, cb = (e) => {}, readOnly=false) {
+function genSlider(name, value, min, max, inc, cb = (e) => {}, readOnly=false) {
     const div = _genNamedDiv(name);
 
     const valueField = document.createElement("input");
@@ -40,6 +40,7 @@ function genSlider(name, value, min, max, cb = (e) => {}, readOnly=false) {
     valueField.type = "range";
     valueField.min = min;
     valueField.max = max;
+    valueField.step = inc;
 
     valueField.addEventListener("input", e => cb(parseFloat(e.target.value)));
 
@@ -111,10 +112,12 @@ function set_settings(settings) {
     const values = {};
 
     for(let field of settings.fields) {
-        values[field.name] = field.value;
+        values[field.id] = field.value;
+
+        console.log(field);
 
         const cb = v => {
-            values[field.name] = v;
+            values[field.id] = v;
             broadcast(values);
         };
 
@@ -127,7 +130,7 @@ function set_settings(settings) {
                 fieldElement = genField(field.name, field.value, cb)[0];
                 break;
             case "slider":
-                fieldElement = genSlider(field.name, field.value, field.min, field.max, cb)[0];
+                fieldElement = genSlider(field.name, field.value, field.min, field.max, field.inc, cb)[0];
                 break;
             default:
                 console.error("Wrong field type "+ field.type);

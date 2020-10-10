@@ -41,5 +41,8 @@ pub struct NoDefault {
 
 #[derive(Settings)]
 pub struct SettingsInst {
-    pub size: NoDefault
+    pub size: NoDefault,
+    pub cool_string: String,
+    #[name("bar")] #[id("cools_string")] #[value("FOO STRING")]
+    pub foo: String,
 }

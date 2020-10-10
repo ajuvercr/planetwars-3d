@@ -1,6 +1,8 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
+use pw_settings::Settings;
+
 use super::super::models;
 use super::{
     buffer::{BufferHandle, IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout},
@@ -11,7 +13,6 @@ use crate::{
     entity::{Camera, CameraHandle, Entity},
     renderer::DefaultRenderable,
     set_settings,
-    settings::Settings,
     uniform::UniformsHandle,
     uniform::{Uniform3f, UniformMat4},
 };
@@ -306,7 +307,7 @@ impl WebGl {
         // settings.add_text("text", "Who's?", "Bauke");
         // settings.add_vec3("vector","Someone's", [0.2, 0.5, 0.8], 0.0, 1.0, 0.01);
 
-        unsafe { set_settings(settings.into_js()) };
+        unsafe { set_settings(JsValue::from_serde(&settings).map_err(|_| "Serde Failed")?) };
 
         Ok(self)
     }

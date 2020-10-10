@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 
 #[derive(Serialize, Debug, Deserialize)]
 #[serde(tag = "type")]
@@ -41,6 +40,28 @@ impl Settings {
         Settings { fields: Vec::new() }
     }
 
+    pub fn vec3<S: Into<String>, S2: Into<String>>(
+        mut self,
+        id: S,
+        name: S2,
+        value: [f32; 3],
+        min: f32,
+        max: f32,
+        inc: f32,
+    ) -> Self {
+        self.fields.push(Field {
+            id: id.into(),
+            name: name.into(),
+            field_type: FieldType::Vector3 {
+                value,
+                min,
+                max,
+                inc,
+            },
+        });
+        self
+    }
+
     pub fn add_vec3<S: Into<String>, S2: Into<String>>(
         &mut self,
         id: S,
@@ -62,6 +83,22 @@ impl Settings {
         });
     }
 
+    pub fn text<S: Into<String>, S2: Into<String>, S3: Into<String>>(
+        mut self,
+        id: S,
+        name: S2,
+        value: S3,
+    ) -> Self {
+        self.fields.push(Field {
+            id: id.into(),
+            name: name.into(),
+            field_type: FieldType::Text {
+                value: value.into(),
+            },
+        });
+        self
+    }
+
     pub fn add_text<S: Into<String>, S2: Into<String>, S3: Into<String>>(
         &mut self,
         id: S,
@@ -75,6 +112,29 @@ impl Settings {
                 value: value.into(),
             },
         });
+    }
+
+    pub fn slider<S: Into<String>, S2: Into<String>>(
+        mut self,
+        id: S,
+        name: S2,
+        value: f32,
+        min: f32,
+        max: f32,
+        inc: f32,
+    ) -> Self {
+        self.fields.push(Field {
+            id: id.into(),
+            name: name.into(),
+            field_type: FieldType::Slider {
+                value,
+                min,
+                max,
+                inc,
+            },
+        });
+
+        self
     }
 
     pub fn add_slider<S: Into<String>, S2: Into<String>>(
@@ -97,8 +157,8 @@ impl Settings {
             },
         });
     }
+}
 
-    pub fn into_js(&self) -> JsValue {
-        JsValue::from_serde(&self).unwrap()
-    }
+pub trait SettingsTrait: Sized {
+    fn into_settings() -> Settings;
 }

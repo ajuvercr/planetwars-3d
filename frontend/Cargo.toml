@@ -14,6 +14,10 @@ wasm-bindgen-futures = "0.4.17"
 serde = { version = "1.0", features = ["derive"] }
 cgmath = "0.17.0"
 
+pw-settings = { version = "0.1", path = "./pw-settings/" }
+pw-derive = { version = "0.1", path = "./pw-derive/" }
+
+
 [dependencies.web-sys]
 version = "0.3"
 features = [

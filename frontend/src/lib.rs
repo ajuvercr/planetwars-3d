@@ -6,10 +6,11 @@ macro_rules! console_log {
     ($($t:tt)*) => (#[allow(unused_unsafe)] unsafe { crate::log(&format_args!($($t)*).to_string()) })
 }
 
+
+
 use wasm_bindgen::prelude::*;
 
 pub mod entity;
-pub mod settings;
 mod webgl;
 pub use webgl::*;
 
@@ -30,4 +31,15 @@ extern "C" {
 
     #[wasm_bindgen]
     fn set_settings(settings: JsValue);
+}
+
+use pw_derive::Settings;
+
+pub struct NoDefault {
+
+}
+
+#[derive(Settings)]
+pub struct SettingsInst {
+    pub size: NoDefault
 }

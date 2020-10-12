@@ -14,6 +14,8 @@ pub mod entity;
 mod webgl;
 pub use webgl::*;
 
+pub mod settings;
+
 pub mod models;
 
 pub mod delaunay;
@@ -41,7 +43,7 @@ pub struct NoDefault {
 
 #[derive(Settings)]
 pub struct SettingsInst {
-    #[settings(name = "settings_name", value="bla")]
+    #[settings(name = "settings_name", value=0.2)]
     pub size: f32,
     pub cool_string: String,
     #[settings(id = "cool_id", name = "settings_name")]

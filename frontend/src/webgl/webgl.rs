@@ -1,7 +1,8 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use pw_settings::Settings;
+use crate::settings::TheseSettings;
+use pw_settings::{Settings, SettingsTrait};
 
 use super::super::models;
 use super::{
@@ -301,27 +302,13 @@ impl WebGl {
             );
         }
 
-        let mut settings = Settings::new();
-        settings.add_slider("inner_diameter", "Slidy into dm's", 0.4, 0.0, 1.0, 0.01);
-        settings.add_slider("count", "Count", 12.0, 0.0, 16.0 * 8.0, 1.0);
-        // settings.add_text("text", "Who's?", "Bauke");
-        // settings.add_vec3("vector","Someone's", [0.2, 0.5, 0.8], 0.0, 1.0, 0.01);
-
-        unsafe { set_settings(JsValue::from_serde(&settings).map_err(|_| "Serde Failed")?) };
+        unsafe { set_settings(JsValue::from_serde(&TheseSettings::into_settings()).map_err(|_| "Serde Failed")?) };
 
         Ok(self)
     }
 
     pub fn handle_client_update(&mut self, val: &JsValue) {
-        #[derive(Serialize, Deserialize, Debug)]
-        struct Settings {
-            // text: String,
-            // vector: [f32;3],
-            inner_diameter: f32,
-            count: f32,
-        };
-
-        if let Some(settings) = val.into_serde::<Settings>().ok() {
+        if let Some(settings) = val.into_serde::<TheseSettings>().ok() {
             console_log!("Settings update {:?}", settings);
 
             if let Some(handle) = &self.circle_handle {

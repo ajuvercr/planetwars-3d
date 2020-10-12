@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::settings::TheseSettings;
-use pw_settings::{Settings, SettingsTrait};
+use pw_settings::SettingsTrait;
 
 use super::super::models;
 use super::{
@@ -22,8 +22,6 @@ use std::collections::HashMap;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
-
-use serde::{Deserialize, Serialize};
 
 #[wasm_bindgen]
 pub struct WebGl {
@@ -302,7 +300,11 @@ impl WebGl {
             );
         }
 
-        unsafe { set_settings(JsValue::from_serde(&TheseSettings::into_settings()).map_err(|_| "Serde Failed")?) };
+        unsafe {
+            set_settings(
+                JsValue::from_serde(&TheseSettings::into_settings()).map_err(|_| "Serde Failed")?,
+            )
+        };
 
         Ok(self)
     }

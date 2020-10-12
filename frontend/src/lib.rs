@@ -6,8 +6,6 @@ macro_rules! console_log {
     ($($t:tt)*) => (#[allow(unused_unsafe)] unsafe { crate::log(&format_args!($($t)*).to_string()) })
 }
 
-
-
 use wasm_bindgen::prelude::*;
 
 pub mod entity;
@@ -35,15 +33,13 @@ extern "C" {
     fn set_settings(settings: JsValue);
 }
 
-use pw_derive::{Settings};
+use pw_derive::Settings;
 
-pub struct NoDefault {
-
-}
+pub struct NoDefault {}
 
 #[derive(Settings)]
 pub struct SettingsInst {
-    #[settings(name = "settings_name", value=0.2)]
+    #[settings(name = "settings_name", value = 0.2)]
     pub size: f32,
     pub cool_string: String,
     #[settings(id = "cool_id", name = "settings_name")]

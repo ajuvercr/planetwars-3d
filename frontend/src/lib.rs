@@ -33,7 +33,7 @@ extern "C" {
     fn set_settings(settings: JsValue);
 }
 
-use pw_derive::Settings;
+use pw_derive::{Settings};
 
 pub struct NoDefault {
 
@@ -41,8 +41,9 @@ pub struct NoDefault {
 
 #[derive(Settings)]
 pub struct SettingsInst {
-    pub size: NoDefault,
+    #[settings(name = "settings_name", value="bla")]
+    pub size: f32,
     pub cool_string: String,
-    #[name("bar")] #[id("cools_string")] #[value("FOO STRING")]
+    #[settings(id = "cool_id", name = "settings_name")]
     pub foo: String,
 }

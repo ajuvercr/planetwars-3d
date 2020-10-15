@@ -63,6 +63,10 @@ body, html {
     height: 20px;
 }
 
+.field .column {
+    flex-direction: column;
+}
+
 .vec3 {
     display: flex;
     justify-content: space-between;

@@ -4,9 +4,9 @@ function addSettingsChangeListener(cb) {
     handlers.push(cb);
 }
 
-function _genNamedDiv(name) {
+function _genNamedDiv(name, ...classes) {
     const div = document.createElement("div");
-    div.classList.add("field");
+    div.classList.add("field", ...classes);
 
     const nameField = document.createElement("p");
     nameField.innerText = name;
@@ -28,6 +28,8 @@ function genField(name, value, cb = (e) => {}, readOnly=false) {
     changeText(value);
 
     div.appendChild(valueField);
+    cb(valueField.value);
+
     return [div, changeText];
 }
 
@@ -48,13 +50,15 @@ function genSlider(name, value, min, max, inc, cb = (e) => {}, readOnly=false) {
     changeText(value);
 
     div.appendChild(valueField);
+    cb(parseFloat(valueField.value));
+
     return [div, changeText];
 }
 
 function genVec3(name, value, min=0, max=1, inc=0.01, cb = (e) => {}, readOnly=false) {
     const div = _genNamedDiv(name);
-    const currentValue = value;
-   
+    const currentValue = value.map(parseFloat);
+
     const vecDiv =  document.createElement("div");
     vecDiv.classList.add("vec3");
     vecDiv.classList.add("input");
@@ -79,7 +83,7 @@ function genVec3(name, value, min=0, max=1, inc=0.01, cb = (e) => {}, readOnly=f
 
         wrapper.appendChild(field);
         div.appendChild(wrapper);
-        
+
         return field;
     }
 
@@ -96,29 +100,23 @@ function genVec3(name, value, min=0, max=1, inc=0.01, cb = (e) => {}, readOnly=f
 
     div.appendChild(vecDiv);
 
+    cb(value);
     return [div, changeText];
 }
 
-
-function set_settings(settings) {
-    function broadcast(value) {
-        for(cb of handlers) {
-            cb(value);
-        }
-    }
-
-    const settingsDiv = document.getElementById("settings");
+function genSettings(name, settings, parent_cb) {
+    const wrapper = _genNamedDiv(name, "column");
+    const div = document.createElement("div");
+    div.classList.add("input");
+    wrapper.appendChild(div);
 
     const values = {};
 
     for(let field of settings.fields) {
         values[field.id] = field.value;
-
-        console.log(field);
-
         const cb = v => {
             values[field.id] = v;
-            broadcast(values);
+            parent_cb(values);
         };
 
         let fieldElement;
@@ -132,11 +130,39 @@ function set_settings(settings) {
             case "slider":
                 fieldElement = genSlider(field.name, field.value, field.min, field.max, field.inc, cb)[0];
                 break;
+            case "settings":
+                fieldElement = genSettings(field.name, field.inner, cb)[0];
+                break;
             default:
                 console.error("Wrong field type "+ field.type);
                 continue;
         }
 
-        settingsDiv.appendChild(fieldElement);
+        div.appendChild(fieldElement);
     }
+
+    // Initiate chain
+    parent_cb(values);
+
+    return [wrapper, (_) => {}];
+}
+
+function set_settings(settings) {
+    // FIXME: This is used to prevent loops
+    const stop_wrapper = {"inner": true};
+    const broadcast = v => {
+        if (stop_wrapper.inner) return;
+        for(cb of handlers) {
+            cb(v);
+        }
+    };
+
+    const settingsDiv = document.getElementById("settings");
+    settingsDiv.innerHTML = "";
+
+    const div = genSettings("", settings, broadcast)[0];
+
+    stop_wrapper.inner = false;
+
+    settingsDiv.appendChild(div);
 }

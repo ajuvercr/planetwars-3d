@@ -147,7 +147,7 @@ fn vector_defaults(field: &Field) -> syn::Result<VectorDefaults> {
     })
 }
 
-fn map_field(field: &Field, ids: &mut HashSet<String>) -> syn::Result<TokenStream2> {
+fn map_field(field: &Field, ids: &mut HashSet<String>) -> syn::Result<(TokenStream2, TokenStream2)> {
     match &field.ty.to_token_stream().to_string()[..] {
         "f32" => {
             let SliderDefaults {
@@ -166,10 +166,14 @@ fn map_field(field: &Field, ids: &mut HashSet<String>) -> syn::Result<TokenStrea
                 ));
             }
 
-            Ok(quote! {
+            let ident = &field.ident;
+
+            Ok((quote!{
                 settings.add_slider(#id, #name, #value, #min, #max, #inc);
-            })
-        }
+            }, quote!{
+                settings.add_slider(#id, #name, self.#ident.clone(), #min, #max, #inc);
+            }))
+        },
         "[f32 ; 3]" => {
             let VectorDefaults {
                 id,
@@ -185,10 +189,13 @@ fn map_field(field: &Field, ids: &mut HashSet<String>) -> syn::Result<TokenStrea
                     format!("Can't add id '{}' twice", id.to_string()),
                 ));
             }
+            let ident = &field.ident;
 
-            Ok(quote! {
+            Ok((quote! {
                 settings.add_vec3(#id, #name, #value, #min, #max, #inc);
-            })
+            }, quote! {
+                settings.add_vec3(#id, #name, self.#ident.clone(), #min, #max, #inc);
+            }))
         }
         "String" => {
             let StringDefaults { id, name, value } = string_defaults(field)?;
@@ -199,15 +206,30 @@ fn map_field(field: &Field, ids: &mut HashSet<String>) -> syn::Result<TokenStrea
                     format!("Can't add id '{}' twice", id.to_string()),
                 ));
             }
+            let ident = &field.ident;
 
-            Ok(quote! {
+            Ok((quote!{
                 settings.add_text(#id, #name, #value);
-            })
-        }
-        x => Err(syn::Error::new(
-            field.span(),
-            format!("Only supported types are String and f32. Not '{}'.", x),
-        )),
+            }, quote! {
+                settings.add_text(#id, #name, self.#ident.clone());
+            }))
+        },
+        _ => {
+            let id = field.ident.as_ref().unwrap().to_string();
+            let name = id.clone();
+            let map = parse_attrs(&field.attrs)?;
+            let id = unpack_field!(String: map, "id", id)?;
+            let name = unpack_field!(String: map, "name", name)?;
+
+            let ty = &field.ty;
+            let ident = &field.ident;
+
+            Ok((quote! {
+                settings.add_settings::<_, _, #ty>(#id, #name);
+            }, quote! {
+                settings.add_settings_with::<_, _, #ty>(#id, #name, self.#ident.to_settings());
+            }))
+        },
     }
 }
 
@@ -226,25 +248,40 @@ pub fn settings_derive(input: TokenStream) -> TokenStream {
     };
 
     let mut ids = HashSet::new();
-    let mut token_streams = Vec::new();
+    let mut default_field_settings = Vec::new();
+    let mut into_field_settings = Vec::new();
+
     for field in fields {
         match map_field(&field, &mut ids) {
-            Ok(stream) => token_streams.push(stream),
+            Ok((default, into)) => {
+                default_field_settings.push(default);
+                into_field_settings.push(into);
+            },
             Err(e) => return e.to_compile_error().into(),
         }
     }
-    let field_stream: TokenStream2 = token_streams.into_iter().collect();
+    let default_stream: TokenStream2 = default_field_settings.into_iter().collect();
+    let into_stream: TokenStream2 = into_field_settings.into_iter().collect();
 
-    println!("{}", field_stream.to_string());
+    println!("{}", into_stream.to_string());
 
-    let struct_name = &input.ident;
+    let generics = input.generics;
+    let struct_name = input.ident;
     TokenStream::from(quote! {
         // Preserve the input struct unchanged in the output.
-        impl ::pw_settings::SettingsTrait for #struct_name {
-            fn into_settings() -> ::pw_settings::Settings {
+        impl #generics ::pw_settings::SettingsTrait for #struct_name {
+            fn default_settings() -> ::pw_settings::Settings {
                 let mut settings = ::pw_settings::Settings::new();
 
-                #field_stream
+                #default_stream
+
+                settings
+            }
+
+            fn to_settings(&self) -> ::pw_settings::Settings {
+                let mut settings = ::pw_settings::Settings::new();
+
+                #into_stream
 
                 settings
             }

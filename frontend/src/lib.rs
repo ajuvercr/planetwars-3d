@@ -38,10 +38,18 @@ use pw_derive::Settings;
 pub struct NoDefault {}
 
 #[derive(Settings)]
+pub struct InnerSettings {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(Settings)]
 pub struct SettingsInst {
     #[settings(name = "settings_name", value = 0.2)]
     pub size: f32,
     pub cool_string: String,
     #[settings(id = "cool_id", name = "settings_name")]
     pub foo: String,
+
+    pub location: InnerSettings,
 }

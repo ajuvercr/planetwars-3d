@@ -1,6 +1,7 @@
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
+use serde_json::Value;
 
-#[derive(Serialize, Debug, Deserialize)]
+#[derive(Serialize, Debug)]
 #[serde(tag = "type")]
 pub enum FieldType {
     #[serde(rename = "vector3")]
@@ -19,9 +20,14 @@ pub enum FieldType {
         max: f32,
         inc: f32,
     },
+    #[serde(rename="data")]
+    Data { value: Value },
+
+    #[serde(rename="settings")]
+    Settings { inner: Settings },
 }
 
-#[derive(Serialize, Debug, Deserialize)]
+#[derive(Serialize, Debug)]
 pub struct Field {
     id: String,
     name: String,
@@ -30,7 +36,7 @@ pub struct Field {
     field_type: FieldType,
 }
 
-#[derive(Serialize, Debug, Deserialize)]
+#[derive(Serialize, Debug)]
 pub struct Settings {
     fields: Vec<Field>,
 }
@@ -38,28 +44,6 @@ pub struct Settings {
 impl Settings {
     pub fn new() -> Self {
         Settings { fields: Vec::new() }
-    }
-
-    pub fn vec3<S: Into<String>, S2: Into<String>>(
-        mut self,
-        id: S,
-        name: S2,
-        value: [f32; 3],
-        min: f32,
-        max: f32,
-        inc: f32,
-    ) -> Self {
-        self.fields.push(Field {
-            id: id.into(),
-            name: name.into(),
-            field_type: FieldType::Vector3 {
-                value,
-                min,
-                max,
-                inc,
-            },
-        });
-        self
     }
 
     pub fn add_vec3<S: Into<String>, S2: Into<String>>(
@@ -83,22 +67,6 @@ impl Settings {
         });
     }
 
-    pub fn text<S: Into<String>, S2: Into<String>, S3: Into<String>>(
-        mut self,
-        id: S,
-        name: S2,
-        value: S3,
-    ) -> Self {
-        self.fields.push(Field {
-            id: id.into(),
-            name: name.into(),
-            field_type: FieldType::Text {
-                value: value.into(),
-            },
-        });
-        self
-    }
-
     pub fn add_text<S: Into<String>, S2: Into<String>, S3: Into<String>>(
         &mut self,
         id: S,
@@ -112,29 +80,6 @@ impl Settings {
                 value: value.into(),
             },
         });
-    }
-
-    pub fn slider<S: Into<String>, S2: Into<String>>(
-        mut self,
-        id: S,
-        name: S2,
-        value: f32,
-        min: f32,
-        max: f32,
-        inc: f32,
-    ) -> Self {
-        self.fields.push(Field {
-            id: id.into(),
-            name: name.into(),
-            field_type: FieldType::Slider {
-                value,
-                min,
-                max,
-                inc,
-            },
-        });
-
-        self
     }
 
     pub fn add_slider<S: Into<String>, S2: Into<String>>(
@@ -157,8 +102,38 @@ impl Settings {
             },
         });
     }
+
+    pub fn add_settings<S: Into<String>, S2: Into<String>, T: SettingsTrait>(
+        &mut self,
+        id: S,
+        name: S2,
+    ) {
+        self.fields.push(Field {
+            id: id.into(),
+            name: name.into(),
+            field_type: FieldType::Settings {
+                inner: T::default_settings(),
+            }
+        })
+    }
+
+    pub fn add_settings_with<S: Into<String>, S2: Into<String>, T: SettingsTrait>(
+        &mut self,
+        id: S,
+        name: S2,
+        value: Settings,
+    ) {
+        self.fields.push(Field {
+            id: id.into(),
+            name: name.into(),
+            field_type: FieldType::Settings {
+                inner: value,
+            }
+        })
+    }
 }
 
 pub trait SettingsTrait: Sized {
-    fn into_settings() -> Settings;
+    fn default_settings() -> Settings;
+    fn to_settings(&self) -> Settings;
 }

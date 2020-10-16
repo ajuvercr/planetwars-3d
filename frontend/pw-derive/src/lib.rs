@@ -1,12 +1,12 @@
 extern crate proc_macro;
 use self::proc_macro::TokenStream;
 
-use quote::quote;
+use quote::{quote, ToTokens};
 use std::collections::{HashMap, HashSet};
 use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Field, Fields};
 
-use proc_macro2::TokenStream as TokenStream2;
 use proc_macro2::Span;
+use proc_macro2::TokenStream as TokenStream2;
 
 mod attrs_parse;
 use attrs_parse::{AttrParseMap, MapValue};
@@ -17,9 +17,7 @@ macro_rules! unpack_field {
         if let Some((span, value)) = $map.get($id) {
             match value {
                 attrs_parse::MapValue::Str(s) => Ok(s.clone()),
-                _ => {
-                    Err(syn::Error::new(span.clone(), "Expected a String value"))
-                }
+                _ => Err(syn::Error::new(span.clone(), "Expected a String value")),
             }
         } else {
             Ok($default)
@@ -29,9 +27,7 @@ macro_rules! unpack_field {
         if let Some((span, value)) = $map.get($id) {
             match value {
                 attrs_parse::MapValue::Float(s) => Ok(s.clone()),
-                _ => {
-                    Err(syn::Error::new(span.clone(), "Expected a Float value"))
-                }
+                _ => Err(syn::Error::new(span.clone(), "Expected a Float value")),
             }
         } else {
             Ok($default)
@@ -41,9 +37,7 @@ macro_rules! unpack_field {
         if let Some((span, value)) = $map.get($id) {
             match value {
                 attrs_parse::MapValue::Vector(s) => Ok(s.clone()),
-                _ => {
-                    Err(syn::Error::new(span.clone(), "Expected a Vector value"))
-                }
+                _ => Err(syn::Error::new(span.clone(), "Expected a Vector value")),
             }
         } else {
             Ok($default)
@@ -59,7 +53,10 @@ fn parse_attrs(attrs: &Vec<syn::Attribute>) -> syn::Result<HashMap<String, (Span
         .unwrap_or(Ok(HashMap::new()))
 }
 
-fn map_field(field: &Field, ids: &mut HashSet<String>) -> syn::Result<(TokenStream2, TokenStream2, TokenStream2)> {
+fn map_field(
+    field: &Field,
+    ids: &mut HashSet<String>,
+) -> syn::Result<(TokenStream2, TokenStream2, TokenStream2)> {
     let id = field.ident.as_ref().unwrap().to_string();
     let name = id.clone();
     let map = parse_attrs(&field.attrs)?;
@@ -82,14 +79,18 @@ fn map_field(field: &Field, ids: &mut HashSet<String>) -> syn::Result<(TokenStre
             let max = unpack_field!(Float: map, "max", 1.0)?;
             let inc = unpack_field!(Float: map, "inc", 0.1)?;
 
-            Ok((quote!{
-                #ident: #value,
-            }, quote!{
-                settings.add_slider(#id, #name, #value, #min, #max, #inc);
-            }, quote!{
-                settings.add_slider(#id, #name, self.#ident.clone(), #min, #max, #inc);
-            }))
-        },
+            Ok((
+                quote! {
+                    #ident: #value,
+                },
+                quote! {
+                    settings.add_slider(#id, #name, #value, #min, #max, #inc);
+                },
+                quote! {
+                    settings.add_slider(#id, #name, self.#ident.clone(), #min, #max, #inc);
+                },
+            ))
+        }
         "[f32 ; 3]" => {
             let [x, y, z] = unpack_field!(Vector: map, "value", [0.0, 0.0, 0.0])?;
             let min = unpack_field!(Float: map, "min", 0.0)?;
@@ -97,39 +98,49 @@ fn map_field(field: &Field, ids: &mut HashSet<String>) -> syn::Result<(TokenStre
             let inc = unpack_field!(Float: map, "inc", 0.1)?;
 
             let value_quote = quote! { [ #x, #y, #z ] };
-            Ok((quote!{
-                #ident: #value_quote,
-            }, quote! {
-                settings.add_vec3(#id, #name, #value_quote, #min, #max, #inc);
-            }, quote! {
-                settings.add_vec3(#id, #name, self.#ident.clone(), #min, #max, #inc);
-            }))
+            Ok((
+                quote! {
+                    #ident: #value_quote,
+                },
+                quote! {
+                    settings.add_vec3(#id, #name, #value_quote, #min, #max, #inc);
+                },
+                quote! {
+                    settings.add_vec3(#id, #name, self.#ident.clone(), #min, #max, #inc);
+                },
+            ))
         }
         "String" => {
             let value = unpack_field!(String: map, "value", String::new())?;
-            Ok((quote!{
-                #ident: #value.to_string(),
-            }, quote!{
-                settings.add_text(#id, #name, #value);
-            }, quote! {
-                settings.add_text(#id, #name, self.#ident.clone());
-            }))
-        },
+            Ok((
+                quote! {
+                    #ident: #value.to_string(),
+                },
+                quote! {
+                    settings.add_text(#id, #name, #value);
+                },
+                quote! {
+                    settings.add_text(#id, #name, self.#ident.clone());
+                },
+            ))
+        }
         _ => {
             let ty = &field.ty;
 
-            Ok((quote! {
-                #ident: <#ty as ::pw_settings::SettingsTrait>::default_settings(),
-            }, quote! {
-                settings.add_settings::<_, _, #ty>(#id, #name);
-            }, quote! {
-                settings.add_settings_with::<_, _, #ty>(#id, #name, self.#ident.to_settings());
-            }))
-        },
+            Ok((
+                quote! {
+                    #ident: <#ty as ::pw_settings::SettingsTrait>::default_settings(),
+                },
+                quote! {
+                    settings.add_settings::<_, _, #ty>(#id, #name);
+                },
+                quote! {
+                    settings.add_settings_with::<_, _, #ty>(#id, #name, self.#ident.to_settings());
+                },
+            ))
+        }
     }
 }
-
-use quote::ToTokens;
 
 #[proc_macro_derive(Settings, attributes(id, name, value, min, max, inc, settings))]
 pub fn settings_derive(input: TokenStream) -> TokenStream {
@@ -155,7 +166,7 @@ pub fn settings_derive(input: TokenStream) -> TokenStream {
                 default_settings.push(default);
                 new_settings.push(new_setting);
                 to_settings.push(into);
-            },
+            }
             Err(e) => return e.to_compile_error().into(),
         }
     }

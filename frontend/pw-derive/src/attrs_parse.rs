@@ -30,9 +30,10 @@ impl Parse for Spanned<MapValue> {
                 .parse::<LitStr>()
                 .map(|lit| (lit.span(), MapValue::Str(lit.value())).into())
         } else if lookahead.peek(LitFloat) {
-            input
-                .parse::<LitFloat>()
-                .and_then(|lit| lit.base10_parse().map(|x| (lit.span(), MapValue::Float(x)).into()))
+            input.parse::<LitFloat>().and_then(|lit| {
+                lit.base10_parse()
+                    .map(|x| (lit.span(), MapValue::Float(x)).into())
+            })
         } else {
             if input.fork().parse::<Spanned<MyVec>>().is_ok() {
                 input

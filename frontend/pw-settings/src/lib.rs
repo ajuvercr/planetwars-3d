@@ -1,4 +1,4 @@
-use serde::{Serialize};
+use serde::Serialize;
 use serde_json::Value;
 
 #[derive(Serialize, Debug)]
@@ -20,10 +20,10 @@ pub enum FieldType {
         max: f32,
         inc: f32,
     },
-    #[serde(rename="data")]
+    #[serde(rename = "data")]
     Data { value: Value },
 
-    #[serde(rename="settings")]
+    #[serde(rename = "settings")]
     Settings { inner: Settings },
 }
 
@@ -113,7 +113,7 @@ impl Settings {
             name: name.into(),
             field_type: FieldType::Settings {
                 inner: T::new_settings(),
-            }
+            },
         })
     }
 
@@ -126,9 +126,7 @@ impl Settings {
         self.fields.push(Field {
             id: id.into(),
             name: name.into(),
-            field_type: FieldType::Settings {
-                inner: value,
-            }
+            field_type: FieldType::Settings { inner: value },
         })
     }
 }

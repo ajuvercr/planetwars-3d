@@ -112,7 +112,7 @@ impl Settings {
             id: id.into(),
             name: name.into(),
             field_type: FieldType::Settings {
-                inner: T::default_settings(),
+                inner: T::new_settings(),
             }
         })
     }
@@ -134,6 +134,10 @@ impl Settings {
 }
 
 pub trait SettingsTrait: Sized {
-    fn default_settings() -> Settings;
+    fn default_settings() -> Self;
     fn to_settings(&self) -> Settings;
+
+    fn new_settings() -> Settings {
+        Self::default_settings().to_settings()
+    }
 }

@@ -1,32 +1,43 @@
-use proc_macro2::{Delimiter, Group, Span};
-use quote::{quote, TokenStreamExt};
+use proc_macro2::Span;
 use std::collections::HashMap;
 use syn::parse::*;
 use syn::{bracketed, Ident, LitFloat, LitStr, Token};
 
-#[derive(Debug)]
-pub enum MapValue {
-    Str(String, Span),
-    Float(f32, Span),
-    Vector(MyVec, Span),
+struct Spanned<T>(pub Span, pub T);
+impl<T> Into<(Span, T)> for Spanned<T> {
+    fn into(self) -> (Span, T) {
+        (self.0, self.1)
+    }
+}
+impl<T> From<(Span, T)> for Spanned<T> {
+    fn from((span, t): (Span, T)) -> Self {
+        Spanned(span, t)
+    }
 }
 
-impl Parse for MapValue {
-    fn parse(input: ParseStream<'_>) -> Result<Self> {
+#[derive(Debug)]
+pub enum MapValue {
+    Str(String),
+    Float(f32),
+    Vector([f32; 3]),
+}
+
+impl Parse for Spanned<MapValue> {
+    fn parse(input: ParseStream<'_>) -> Result<Spanned<MapValue>> {
         let lookahead = input.lookahead1();
         if lookahead.peek(LitStr) {
             input
                 .parse::<LitStr>()
-                .map(|lit| MapValue::Str(lit.value(), lit.span()))
+                .map(|lit| (lit.span(), MapValue::Str(lit.value())).into())
         } else if lookahead.peek(LitFloat) {
             input
                 .parse::<LitFloat>()
-                .and_then(|lit| lit.base10_parse().map(|x| MapValue::Float(x, lit.span())))
+                .and_then(|lit| lit.base10_parse().map(|x| (lit.span(), MapValue::Float(x)).into()))
         } else {
-            if input.fork().parse::<MyVec>().is_ok() {
+            if input.fork().parse::<Spanned<MyVec>>().is_ok() {
                 input
-                    .parse::<MyVec>()
-                    .map(|MyVec(lit, span)| MapValue::Vector(MyVec(lit, span.clone()), span))
+                    .parse::<Spanned<MyVec>>()
+                    .map(|Spanned(span, MyVec(lit))| (span, MapValue::Vector(lit)).into())
             } else {
                 Err(lookahead.error())
             }
@@ -35,7 +46,7 @@ impl Parse for MapValue {
 }
 
 #[derive(Debug)]
-pub struct AttrParseMap(pub HashMap<String, MapValue>);
+pub struct AttrParseMap(pub HashMap<String, (Span, MapValue)>);
 impl Parse for AttrParseMap {
     fn parse(input: ParseStream<'_>) -> Result<Self> {
         let mut map = HashMap::new();
@@ -43,10 +54,10 @@ impl Parse for AttrParseMap {
         while !input.is_empty() {
             let ident: Ident = input.parse()?;
             input.parse::<Token![=]>()?;
-            let value: MapValue = input.parse()?;
+            let Spanned(span, value) = input.parse()?;
             input.parse::<Option<Token![,]>>()?;
 
-            map.insert(ident.to_string(), value);
+            map.insert(ident.to_string(), (span, value));
         }
 
         Ok(Self(map))
@@ -54,13 +65,8 @@ impl Parse for AttrParseMap {
 }
 
 #[derive(Debug, Clone)]
-pub struct MyVec([f32; 3], Span);
-impl MyVec {
-    pub fn new(inner: [f32; 3]) -> Self {
-        Self(inner, Span::call_site())
-    }
-}
-impl Parse for MyVec {
+pub struct MyVec([f32; 3]);
+impl Parse for Spanned<MyVec> {
     fn parse(input: ParseStream<'_>) -> Result<Self> {
         let content;
         bracketed!(content in input);
@@ -80,14 +86,6 @@ impl Parse for MyVec {
             .and_then(|lit| lit.base10_parse())?;
         content.parse::<Option<Token![,]>>()?;
 
-        Ok(Self([x, y, z], input.span()))
-    }
-}
-
-impl quote::ToTokens for MyVec {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let [x, y, z] = self.0;
-
-        tokens.append(Group::new(Delimiter::Bracket, quote! {#x, #y, #z}));
+        Ok(Self(input.span(), MyVec([x, y, z])))
     }
 }

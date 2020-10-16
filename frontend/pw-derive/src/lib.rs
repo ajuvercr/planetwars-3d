@@ -12,6 +12,12 @@ mod attrs_parse;
 use attrs_parse::{AttrParseMap, MapValue};
 use syn::spanned::Spanned;
 
+static FLOAT_DEFAULT: f32 = 0.0;
+static FLOAT_MIN: f32 = 0.0;
+static FLOAT_MAX: f32 = 1.0;
+static FLOAT_INC: f32 = 0.1;
+
+
 macro_rules! unpack_field {
     (String: $map:ident, $id:expr, $default:expr) => {
         if let Some((span, value)) = $map.get($id) {
@@ -74,10 +80,10 @@ fn map_field(
 
     match &field.ty.to_token_stream().to_string()[..] {
         "f32" => {
-            let value = unpack_field!(Float: map, "value", 0.0)?;
-            let min = unpack_field!(Float: map, "min", 0.0)?;
-            let max = unpack_field!(Float: map, "max", 1.0)?;
-            let inc = unpack_field!(Float: map, "inc", 0.1)?;
+            let value = unpack_field!(Float: map, "value", FLOAT_DEFAULT)?;
+            let min = unpack_field!(Float: map, "min", FLOAT_MIN)?;
+            let max = unpack_field!(Float: map, "max", FLOAT_MAX)?;
+            let inc = unpack_field!(Float: map, "inc", FLOAT_INC)?;
 
             Ok((
                 quote! {
@@ -92,10 +98,10 @@ fn map_field(
             ))
         }
         "[f32 ; 3]" => {
-            let [x, y, z] = unpack_field!(Vector: map, "value", [0.0, 0.0, 0.0])?;
-            let min = unpack_field!(Float: map, "min", 0.0)?;
-            let max = unpack_field!(Float: map, "max", 1.0)?;
-            let inc = unpack_field!(Float: map, "inc", 0.1)?;
+            let [x, y, z] = unpack_field!(Vector: map, "value", [FLOAT_DEFAULT, FLOAT_DEFAULT, FLOAT_DEFAULT])?;
+            let min = unpack_field!(Float: map, "min", FLOAT_MIN)?;
+            let max = unpack_field!(Float: map, "max", FLOAT_MAX)?;
+            let inc = unpack_field!(Float: map, "inc", FLOAT_INC)?;
 
             let value_quote = quote! { [ #x, #y, #z ] };
             Ok((
@@ -173,13 +179,6 @@ pub fn settings_derive(input: TokenStream) -> TokenStream {
     let default_stream: TokenStream2 = default_settings.into_iter().collect();
     let into_stream: TokenStream2 = to_settings.into_iter().collect();
     let new_stream: TokenStream2 = new_settings.into_iter().collect();
-
-    // println!("----Default----");
-    // println!("{}", default_stream.to_string());
-    // println!("----into----");
-    // println!("{}", into_stream.to_string());
-    // println!("----new----");
-    // println!("{}", new_stream.to_string());
 
     let generics = input.generics;
     let struct_name = input.ident;

@@ -148,6 +148,8 @@ function genSettings(name, settings, parent_cb) {
 }
 
 function set_settings(settings) {
+    console.log(settings);
+
     // FIXME: This is used to prevent loops
     const stop_wrapper = {"inner": true};
     const broadcast = v => {

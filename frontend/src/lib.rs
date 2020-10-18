@@ -39,8 +39,10 @@ pub struct NoDefault {}
 
 #[derive(Settings)]
 pub struct InnerSettings {
+    #[settings(name = "Slidy", value = 0.4)]
     pub x: f32,
-    pub y: f32,
+    #[settings(name = "Slidy")]
+    pub y: Vec<f32>,
 }
 
 #[derive(Settings)]
@@ -51,5 +53,5 @@ pub struct SettingsInst {
     #[settings(id = "cool_id", name = "settings_name")]
     pub foo: String,
 
-    pub location: InnerSettings,
+    pub location: Vec<f32>,
 }

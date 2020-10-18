@@ -7,6 +7,29 @@ const SENSITIVITY_Y = 50;
 window.addEventListener("gamepadconnected", connecthandler);
 window.addEventListener("gamepaddisconnected", disconnecthandler);
 
+function debounce(fn) {
+    var running = false;
+    var nextArg;
+
+    async function flush() {
+        if(nextArg && !running) {
+            running = true;
+            let localArg = nextArg;
+            nextArg = null;
+
+            fn(localArg);
+
+            running = false;
+            flush();
+        }
+    }
+
+  return async function(e) {
+        nextArg = e;
+    flush();
+  }
+}
+
 function disconnecthandler(e) {
     delete controllers[e.gamepad.index];
 }
@@ -125,7 +148,7 @@ async function doInit() {
     }
     window.requestAnimationFrame(render);
 
-    addSettingsChangeListener(e => webGL.handle_client_update(e));
+    addSettingsChangeListener(debounce(v => webGL.handle_client_update(v)));
 }
 
 doInit();

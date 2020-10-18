@@ -7,17 +7,11 @@ static FLOAT_MAX: f32 = 1.0;
 static FLOAT_INC: f32 = 0.1;
 
 #[derive(Serialize, Debug)]
-#[serde(tag = "type", content = "inner")]
+#[serde(tag = "type", content = "content")]
 pub enum FieldType {
-    #[serde(rename = "vector3")]
-    Vector3 {
-        value: [f32; 3],
-        min: f32,
-        max: f32,
-        inc: f32,
-    },
     #[serde(rename = "text")]
     Text(String),
+
     #[serde(rename = "slider")]
     Slider {
         value: f32,
@@ -25,6 +19,7 @@ pub enum FieldType {
         max: f32,
         inc: f32,
     },
+
     #[serde(rename = "data")]
     Data(Value),
 
@@ -54,87 +49,6 @@ impl Settings {
         Settings { fields: Vec::new() }
     }
 
-    pub fn add_vec3<S: Into<String>, S2: Into<String>>(
-        &mut self,
-        id: S,
-        name: S2,
-        value: [f32; 3],
-        min: f32,
-        max: f32,
-        inc: f32,
-    ) {
-        self.fields.push(Field {
-            id: id.into(),
-            name: name.into(),
-            field_type: FieldType::Vector3 {
-                value,
-                min,
-                max,
-                inc,
-            },
-        });
-    }
-
-    pub fn add_text<S: Into<String>, S2: Into<String>, S3: Into<String>>(
-        &mut self,
-        id: S,
-        name: S2,
-        value: S3,
-    ) {
-        self.fields.push(Field {
-            id: id.into(),
-            name: name.into(),
-            field_type: FieldType::Text(value.into()),
-        });
-    }
-
-    pub fn add_slider<S: Into<String>, S2: Into<String>>(
-        &mut self,
-        id: S,
-        name: S2,
-        value: f32,
-        min: f32,
-        max: f32,
-        inc: f32,
-    ) {
-        self.fields.push(Field {
-            id: id.into(),
-            name: name.into(),
-            field_type: FieldType::Slider {
-                value,
-                min,
-                max,
-                inc,
-            },
-        });
-    }
-
-    pub fn add_settings<S: Into<String>, S2: Into<String>>(
-        &mut self,
-        id: S,
-        name: S2,
-        value: Settings,
-    ) {
-        self.fields.push(Field {
-            id: id.into(),
-            name: name.into(),
-            field_type: FieldType::Settings(value),
-        })
-    }
-
-    pub fn add_data<S: Into<String>, S2: Into<String>, V: Serialize>(
-        &mut self,
-        id: S,
-        name: S2,
-        value: &V,
-    ) {
-        self.fields.push(Field {
-            id: id.into(),
-            name: name.into(),
-            field_type: FieldType::Data(serde_json::to_value(value).unwrap()),
-        })
-    }
-
     pub fn add_field<S1: Into<String>, S2: Into<String>>(
         &mut self,
         id: S1,
@@ -145,6 +59,17 @@ impl Settings {
             id: id.into(),
             name: name.into(),
             field_type: field,
+        });
+    }
+
+    pub fn add_data<S1: Into<String>, V: Serialize>(&mut self, id: S1, value: V) {
+        let id = id.into();
+        self.fields.push(Field {
+            id: id.clone(),
+            name: id,
+            field_type: FieldType::Data(
+                serde_json::to_value(value).expect("Expected serializable json"),
+            ),
         });
     }
 }

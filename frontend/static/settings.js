@@ -1,5 +1,7 @@
 
-const handlers = [];
+const handlers = [
+    console.log
+];
 function addSettingsChangeListener(cb) {
     handlers.push(cb);
 }
@@ -8,9 +10,12 @@ function _genNamedDiv(name, ...classes) {
     const div = document.createElement("div");
     div.classList.add("field", ...classes);
 
-    const nameField = document.createElement("p");
-    nameField.innerText = name;
-    div.appendChild(nameField);
+    if(name) {
+        const nameField = document.createElement("p");
+        nameField.innerText = name;
+        div.appendChild(nameField);
+    }
+
     return div;
 }
 
@@ -33,21 +38,21 @@ function genField(name, value, cb = (e) => {}, readOnly=false) {
     return [div, changeText];
 }
 
-function genSlider(name, value, min, max, inc, cb = (e) => {}, readOnly=false) {
+function genSlider(name, content, cb = (e) => {}, readOnly=false) {
     const div = _genNamedDiv(name);
 
     const valueField = document.createElement("input");
     valueField.classList.add("input");
     valueField.readOnly = readOnly;
     valueField.type = "range";
-    valueField.min = min;
-    valueField.max = max;
-    valueField.step = inc;
+    valueField.min = content.min;
+    valueField.max = content.max;
+    valueField.step = content.inc;
 
     valueField.addEventListener("input", e => cb(parseFloat(e.target.value)));
 
     const changeText = (t) => valueField.value = t;
-    changeText(value);
+    changeText(content.value);
 
     div.appendChild(valueField);
     cb(parseFloat(valueField.value));
@@ -55,56 +60,66 @@ function genSlider(name, value, min, max, inc, cb = (e) => {}, readOnly=false) {
     return [div, changeText];
 }
 
-function genVec3(name, value, min=0, max=1, inc=0.01, cb = (e) => {}, readOnly=false) {
+function genArray(name, content, parent_cb = (e) => {}, readOnly=false) {
     const div = _genNamedDiv(name);
-    const currentValue = value.map(parseFloat);
 
     const vecDiv =  document.createElement("div");
-    vecDiv.classList.add("vec3");
-    vecDiv.classList.add("input");
+    const values = [];
+    const setters = [];
 
-    function genSmallField(div, index, className) {
-        const wrapper = document.createElement("div");
-        wrapper.classList.add(className);
-        wrapper.classList.add("part");
+    for (let index = 0; index < content.length; index++) {
+        const element = content[index];
 
-        const field = document.createElement("input");
-        field.readOnly = readOnly;
-        field.type = "number";
+        const cb = v => {
+            values[index] = v;   // This should be useless
+            parent_cb(values);
+        };
 
-        field.min = min;
-        field.max=max;
-        field.step = inc;
-
-        field.addEventListener("input", e => {
-            currentValue[index] = parseFloat(e.target.value);
-            cb(currentValue);
-        });
-
-        wrapper.appendChild(field);
-        div.appendChild(wrapper);
-
-        return field;
+        const fieldElement = genSetting(element, v => values[index] = v, () => parent_cb(values));
+        if(fieldElement) {
+            div.appendChild(fieldElement[0]);
+            setters.push(fieldElement[1]);
+        }
     }
 
-    const xField = genSmallField(vecDiv, 0, "x");
-    const yField = genSmallField(vecDiv, 1, "y");
-    const zField = genSmallField(vecDiv, 2, "z");
-
     const changeText = (t) => {
-        xField.value = t[0];
-        yField.value = t[1];
-        zField.value = t[2];
+        for (let index = 0; index < t.length; index++) {
+            setter[index](t[index]);
+        }
     };
-    changeText(value);
 
     div.appendChild(vecDiv);
 
-    cb(value);
+    parent_cb(values);
+
     return [div, changeText];
 }
 
+function genSetting(field, setter, flush) {
+    const cb = v => {
+        setter(v);
+        flush();
+    };
+
+    switch(field.type) {
+        case "array":
+            return genArray(field.name, field.content, cb);
+        case "text":
+            return genField(field.name, field.content, cb);
+        case "slider":
+            return genSlider(field.name, field.content, cb);
+        case "settings":
+            return genSettings(field.name, field.content, cb);
+        case "data":
+            setter(field.content);
+            break;
+        default:
+            console.error("Wrong field type "+ field.type);
+    }
+}
+
 function genSettings(name, settings, parent_cb) {
+    console.log(settings);
     const wrapper = _genNamedDiv(name, "column");
     const div = document.createElement("div");
     div.classList.add("input");
@@ -113,32 +128,9 @@ function genSettings(name, settings, parent_cb) {
     const values = {};
 
     for(let field of settings.fields) {
-        values[field.id] = field.value;
-        const cb = v => {
-            values[field.id] = v;
-            parent_cb(values);
-        };
-
-        let fieldElement;
-        switch(field.type) {
-            case "vector3":
-                fieldElement = genVec3(field.name, field.value, field.min, field.max, field.inc, cb)[0];
-                break;
-            case "text":
-                fieldElement = genField(field.name, field.value, cb)[0];
-                break;
-            case "slider":
-                fieldElement = genSlider(field.name, field.value, field.min, field.max, field.inc, cb)[0];
-                break;
-            case "settings":
-                fieldElement = genSettings(field.name, field.inner, cb)[0];
-                break;
-            default:
-                console.error("Wrong field type "+ field.type);
-                continue;
-        }
-
-        div.appendChild(fieldElement);
+        const fieldElement = genSetting(field, v => values[field.id] = v, () => parent_cb(values));
+        if(fieldElement)
+            div.appendChild(fieldElement[0]);
     }
 
     // Initiate chain

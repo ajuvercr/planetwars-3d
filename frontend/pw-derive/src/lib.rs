@@ -51,7 +51,7 @@ pub fn settings_derive(input: TokenStream) -> TokenStream {
         let (value, min, max, inc) = (
             attrs
                 .get("value")
-                .map(|x| quote! { Some(#x) })
+                .map(|x| quote! { Some(#x.into()) })
                 .unwrap_or(quote! { None }),
             attrs
                 .get("min")
@@ -70,19 +70,29 @@ pub fn settings_derive(input: TokenStream) -> TokenStream {
         let ident = &field.ident;
         let ty = &field.ty;
 
-        let settings = quote! {::pw_settings::FieldConfig { value: #value, min: #min, max: #max, inc: #inc, }
+        let settings = quote! {
+            ::pw_settings::FieldConfig { value: #value, min: #min, max: #max, inc: #inc, }
         };
 
         default_settings.push(quote! {
             #ident: <#ty as ::pw_settings::FieldTrait>::default_self(&#settings),
         });
 
-        to_settings.push(quote! {
-            settings.add_field(
-                #id, #name,
-                self.#ident.to_field(&#settings)
-            );
-        });
+        if attrs.contains_key("data") {
+            to_settings.push(quote! {
+                settings.add_data(
+                    #id,
+                    &self.#ident
+                );
+            });
+        } else {
+            to_settings.push(quote! {
+                settings.add_field(
+                    #id, #name,
+                    self.#ident.to_field(&#settings)
+                );
+            });
+        }
     }
 
     let default_stream: TokenStream2 = default_settings.into_iter().collect();

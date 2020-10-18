@@ -306,8 +306,7 @@ impl WebGl {
                 JsValue::from_serde(&TheseSettings::new_settings())
             );
             set_settings(
-                JsValue::from_serde(&TheseSettings::new().to_settings())
-                    .map_err(|_| "Serde Failed")?,
+                JsValue::from_serde(&TheseSettings::new_settings()).map_err(|_| "Serde Failed")?,
             )
         };
 
@@ -315,22 +314,22 @@ impl WebGl {
     }
 
     pub fn handle_client_update(&mut self, val: &JsValue) {
-        // if let Some(mut settings) = val.into_serde::<TheseSettings>().ok() {
-        //     console_log!("Settings update {:?}", settings);
-        //     settings.count += 1.0;
-        //     let js_value = JsValue::from_serde(&settings.to_settings())
-        //         .map_err(|_| "Serde Failed")
-        //         .unwrap();
-        //     println!("js value {:?}", js_value);
-        //     unsafe { set_settings(js_value) };
+        if let Some(mut settings) = val.into_serde::<TheseSettings>().ok() {
+            console_log!("Settings update {:?}", settings);
+            settings.count += 1.0;
+            let js_value = JsValue::from_serde(&settings.to_settings())
+                .map_err(|_| "Serde Failed")
+                .unwrap();
+            println!("js value {:?}", js_value);
+            unsafe { set_settings(js_value) };
 
-        //     if let Some(handle) = &self.circle_handle {
-        //         handle.reset(models::gen_circle(
-        //             settings.inner_diameter,
-        //             settings.count as usize,
-        //         ));
-        //     }
-        // }
+            if let Some(handle) = &self.circle_handle {
+                handle.reset(models::gen_circle(
+                    settings.inner_diameter,
+                    settings.count as usize,
+                ));
+            }
+        }
     }
 
     pub fn update(&mut self, dt: f64) -> Result<(), JsValue> {

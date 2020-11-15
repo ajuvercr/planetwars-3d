@@ -2,13 +2,18 @@ use cgmath::{Angle, Deg, Euler, Matrix4, Vector3};
 use pw_derive::Settings;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Settings, Serialize, Deserialize)]
+#[derive(Debug, Clone, Settings, Serialize, Deserialize, AddGetterVal, AddSetter)]
 pub struct Entity {
+    #[get_val] #[set]
     position: Vec3,
+    #[get_val] #[set]
     speed: Vec3,
+    #[get_val] #[set]
     rotation: Vec3,
+    #[get_val] #[set]
     ang_speed: Vec3,
 
+    #[get_val] #[set]
     scale: Vec3,
 }
 
@@ -55,17 +60,9 @@ impl Entity {
         self
     }
 
-    pub fn rotation(&self) -> Matrix4<f32> {
+    pub fn mat_rotation(&self) -> Matrix4<f32> {
         let Vec3 { x, y, z } = self.rotation;
         Euler::new(Deg(x), Deg(y), Deg(z)).into()
-    }
-
-    pub fn position(&self) -> Vector3<f32> {
-        self.position.into()
-    }
-
-    pub fn speed(&self) -> Vector3<f32> {
-        self.speed.into()
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -77,12 +74,12 @@ impl Entity {
     #[inline]
     pub fn world_matrix(&self) -> Matrix4<f32> {
         Matrix4::from_translation(self.position.into())
-            * self.rotation()
+            * self.mat_rotation()
             * Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z)
     }
 }
 
-use vec3::Vec3;
+pub use vec3::Vec3;
 mod vec3 {
     use cgmath::Vector3;
 

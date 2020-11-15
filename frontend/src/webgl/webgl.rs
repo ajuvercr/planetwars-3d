@@ -11,7 +11,7 @@ use pw_settings::SettingsTrait;
 use super::super::models;
 use super::{buffer::BufferHandle, renderer::Renderer, Shader};
 use crate::{
-    entity::{Camera, CameraHandle, Entity},
+    engine::{Camera, CameraHandle, Entity},
     set_settings,
 };
 use cgmath::Vector3;

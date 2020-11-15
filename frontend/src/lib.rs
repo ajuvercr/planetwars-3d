@@ -6,9 +6,10 @@ macro_rules! console_log {
     ($($t:tt)*) => (#[allow(unused_unsafe)] unsafe { crate::log(&format_args!($($t)*).to_string()) })
 }
 
+#[macro_use] extern crate add_getters_setters;
+
 use wasm_bindgen::prelude::*;
 
-pub mod entity;
 mod webgl;
 pub use webgl::*;
 

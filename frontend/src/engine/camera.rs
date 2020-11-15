@@ -1,5 +1,7 @@
+use cgmath::Vector4;
+use super::{Entity, Vec3};
 use crate::set_info;
-use cgmath::{perspective, prelude::SquareMatrix, Deg, Matrix3, Matrix4, Vector3};
+use cgmath::{perspective, prelude::SquareMatrix, Deg, Matrix4, Vector3};
 use std::sync::mpsc;
 use wasm_bindgen::prelude::*;
 
@@ -66,9 +68,8 @@ pub struct Camera {
     aspect: f32,
     fov: f32,
 
-    position: Vector3<f32>,
+    entity: Entity,
 
-    rotation: Vector3<f32>,
     world_view_projection_matrix: Matrix4<f32>,
     projection_matrix: Matrix4<f32>,
 
@@ -87,8 +88,8 @@ impl Camera {
             fov: 120.0,
             aspect: 1.0,
             world_view_projection_matrix: Matrix4::identity(),
-            position: Vector3::new(0.0, 0.0, 0.0),
-            rotation: Vector3::new(0.0, 0.0, 0.0),
+            entity: Entity::default(),
+
             tx,
             rx,
             projection_matrix,
@@ -106,9 +107,7 @@ impl Camera {
     }
 
     fn world_matrix(&self) -> Matrix4<f32> {
-        let rotation = Matrix4::from_angle_y(Deg(self.rotation.y))
-            * Matrix4::from_angle_x(Deg(self.rotation.x));
-        Matrix4::from_translation(self.position) * rotation
+        Matrix4::from_translation(self.entity.position().into()) * self.entity.mat_rotation()
     }
 
     pub fn handle(&self) -> CameraHandle {
@@ -123,21 +122,23 @@ impl Camera {
         loop {
             match self.rx.try_recv() {
                 Ok(CameraEvent::AddAngle(delta)) => {
-                    self.rotation += delta;
+                    let delta: Vec3 = delta.into();
+                    self.entity.set_rotation(self.entity.rotation() + delta);
                     reset_world = true;
                 }
                 Ok(CameraEvent::ResetAngle(angle)) => {
-                    self.rotation = angle;
+                    self.entity.set_rotation(angle.into());
                     reset_world = true;
                 }
                 Ok(CameraEvent::AddPosition(delta)) => {
-                    let rotation = Matrix3::from_angle_y(Deg(self.rotation.y))
-                        * Matrix3::from_angle_x(Deg(self.rotation.x));
-                    self.position += rotation * delta;
+                    let delta: Vector4<f32> = delta.extend(1.0);
+                    let rotation = self.entity.mat_rotation();
+                    let delta: Vec3 = (rotation * delta).truncate().into();
+                    self.entity.set_position(self.entity.position() + delta);
                     reset_world = true;
                 }
                 Ok(CameraEvent::ResetPosition(Vector3 { x, y, z })) => {
-                    self.position = Vector3::new(x, y, z);
+                    self.entity.set_position(Vec3::new(x, y, z));
                     reset_world = true;
                 }
                 Ok(CameraEvent::SetAspect(aspect)) => {
@@ -169,16 +170,16 @@ impl Camera {
             self.reset_world_view_projection_matrix();
         }
 
-        // Rust analyser says it should be in unsafe and later that it shouldn't be in unsafe :/
-        #[allow(unused_unsafe)]
         unsafe {
+            let position = self.entity.position();
+            let rotation = self.entity.rotation();
             set_info(
-                self.position.x,
-                self.position.y,
-                self.position.z,
-                self.rotation.x,
-                self.rotation.y,
-                self.rotation.z,
+                position.x,
+                position.y,
+                position.z,
+                rotation.x,
+                rotation.y,
+                rotation.z,
             );
         }
 

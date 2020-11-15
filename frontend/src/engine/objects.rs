@@ -1,5 +1,4 @@
-use crate::entity::Camera;
-use crate::entity::Entity;
+use super::{Entity, Camera};
 use crate::uniform::{Uniform3f, UniformMat4};
 use crate::webgl::buffer::{VertexArray, VertexBuffer, VertexBufferLayout};
 use crate::webgl::renderer::{DefaultRenderable, Renderer};

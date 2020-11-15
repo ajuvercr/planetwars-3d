@@ -18,6 +18,7 @@ cgmath = "0.17.0"
 pw-settings = { version = "0.1", path = "./pw-settings/" }
 pw-derive = { version = "0.1", path = "./pw-derive/" }
 
+add_getters_setters = "1.1.2"
 
 [dependencies.web-sys]
 version = "0.3"

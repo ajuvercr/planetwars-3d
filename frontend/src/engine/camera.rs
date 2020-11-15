@@ -80,11 +80,11 @@ pub struct Camera {
 impl Camera {
     pub fn new() -> Self {
         let (tx, rx) = mpsc::channel();
-        let projection_matrix = perspective(Deg(90.0), 1.0, 0.2, 2000.0);
+        let projection_matrix = perspective(Deg(90.0), 1.0, 0.2, 10000.0);
 
         Camera {
             near: 0.5,
-            far: 2000.0,
+            far: 10000.0,
             fov: 120.0,
             aspect: 1.0,
             world_view_projection_matrix: Matrix4::identity(),

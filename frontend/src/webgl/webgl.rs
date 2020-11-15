@@ -1,6 +1,6 @@
 use crate::models::gen_cube_faces;
 use crate::models::gen_sphere_faces;
-use crate::util::FpsCounter;
+use crate::util;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -18,8 +18,6 @@ use cgmath::Vector3;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
 
-use crate::util::fetch;
-
 #[wasm_bindgen]
 pub struct WebGl {
     canvas: HtmlCanvasElement,
@@ -34,7 +32,7 @@ pub struct WebGl {
 
     renderer: Renderer,
 
-    fps_counter: FpsCounter,
+    fps_counter: util::FpsCounter,
 }
 
 unsafe impl Send for WebGl {}
@@ -76,7 +74,7 @@ impl WebGl {
             circle_handle: None,
 
             renderer: Renderer::new(),
-            fps_counter: FpsCounter::new(),
+            fps_counter: util::FpsCounter::new(),
         })
     }
 
@@ -110,8 +108,8 @@ impl WebGl {
         // Enable the depth buffer
         gl.enable(GL::DEPTH_TEST);
 
-        let vert_source = fetch("shaders/basic.vert").await?;
-        let frag_source = fetch("shaders/basic.frag").await?;
+        let vert_source = util::fetch("shaders/basic.vert").await?;
+        let frag_source = util::fetch("shaders/basic.frag").await?;
 
         let shader_factory = Shader::factory(frag_source, vert_source);
 
@@ -125,17 +123,38 @@ impl WebGl {
             ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
         };
 
+        let ship_factory = {
+            let (verts, faces) = util::load_ship().await.ok_or("Ship loading failed!")?;
+            ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
+        };
+
         // Setup sphere
         let sphere_entity = Entity::default()
             .with_position(Vector3::new(0.0, 0.0, -500.0))
-            .with_hom_scale(50.0)
             .with_ang_speed(Vector3::new(30.0, 60.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
 
-        self.objects.push(
-            sphere_factory
+        {
+            let mut sphere_entity = sphere_entity.clone();
+            sphere_entity.set_position(Vector3::new(0.0, 0.0, -800.0).into());
+            sphere_entity.set_scale(Vector3::new(50.0, 50.0, 50.0).into());
+            self.objects.push(
+                sphere_factory
                 .create(gl, &mut self.renderer, sphere_entity)
                 .ok_or("Sphere creation failed")?,
-        );
+            );
+        }
+
+        for i in -3..3 {
+            for j in 0..3 {
+                let mut sphere_entity = sphere_entity.clone();
+                sphere_entity.set_position(Vector3::new((i * 50) as f32, (j * 100) as f32, -500.0).into());
+                self.objects.push(
+                    ship_factory
+                    .create(gl, &mut self.renderer, sphere_entity)
+                    .ok_or("Ship creation failed")?,
+                );
+            }
+        }
 
         let sphere_factory = {
             let (verts, faces) = gen_sphere_faces(1);

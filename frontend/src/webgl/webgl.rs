@@ -1,27 +1,24 @@
+use crate::models::gen_cube_faces;
+use crate::models::gen_sphere_faces;
+use crate::util::FpsCounter;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
+use crate::engine::{Object, ObjectConfig, ObjectFactory};
 use crate::settings::TheseSettings;
 use pw_settings::SettingsTrait;
 
 use super::super::models;
-use super::{
-    buffer::{BufferHandle, IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout},
-    renderer::Renderer,
-    Shader,
-};
+use super::{buffer::BufferHandle, renderer::Renderer, Shader};
 use crate::{
     entity::{Camera, CameraHandle, Entity},
-    renderer::DefaultRenderable,
     set_settings,
-    uniform::UniformsHandle,
-    uniform::{Uniform3f, UniformMat4},
 };
 use cgmath::Vector3;
-use std::collections::HashMap;
-use wasm_bindgen_futures::JsFuture;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
+
+use crate::util::fetch;
 
 #[wasm_bindgen]
 pub struct WebGl {
@@ -30,45 +27,19 @@ pub struct WebGl {
 
     circle_handle: Option<BufferHandle<Vec<f32>>>,
 
-    uniform_handles: Vec<UniformsHandle>,
-
-    entities: Vec<Entity>,
+    objects: Vec<Object>,
 
     camera: Camera,
     camera_handle: CameraHandle,
 
     renderer: Renderer,
+
+    fps_counter: FpsCounter,
 }
 
 unsafe impl Send for WebGl {}
 
 unsafe impl Sync for WebGl {}
-
-async fn fetch(url: &str) -> Result<String, JsValue> {
-    use web_sys::{Request, RequestInit, RequestMode, Response};
-
-    let mut opts = RequestInit::new();
-    opts.method("GET");
-    opts.mode(RequestMode::Cors);
-
-    let request = Request::new_with_str_and_init(url, &opts)?;
-
-    let window = web_sys::window().unwrap();
-    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
-
-    // `resp_value` is a `Response` object.
-    assert!(resp_value.is_instance_of::<Response>());
-    let resp: Response = resp_value.dyn_into().unwrap();
-
-    if !resp.ok() {
-        return Err(resp.into());
-    }
-
-    // Convert this other `Promise` into a rust `Future`.
-    let text = JsFuture::from(resp.text()?).await?.as_string().unwrap();
-
-    Ok(text)
-}
 
 #[wasm_bindgen]
 impl WebGl {
@@ -97,9 +68,7 @@ impl WebGl {
         Ok(Self {
             canvas,
             gl,
-
-            uniform_handles: Vec::new(),
-            entities: Vec::new(),
+            objects: Vec::new(),
 
             camera,
             camera_handle,
@@ -107,6 +76,7 @@ impl WebGl {
             circle_handle: None,
 
             renderer: Renderer::new(),
+            fps_counter: FpsCounter::new(),
         })
     }
 
@@ -145,160 +115,62 @@ impl WebGl {
 
         let shader_factory = Shader::factory(frag_source, vert_source);
 
+        let sphere_factory = {
+            let (verts, faces) = gen_sphere_faces(3);
+            ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
+        };
+
+        let cube_factory = {
+            let (verts, faces) = gen_cube_faces();
+            ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
+        };
+
         // Setup sphere
         let sphere_entity = Entity::default()
             .with_position(Vector3::new(0.0, 0.0, -500.0))
             .with_hom_scale(50.0)
             .with_ang_speed(Vector3::new(30.0, 60.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
-        self.entities.push(sphere_entity);
 
-        let vertices = models::gen_sphere_icosahedral(5.0);
-        console_log!("Verts count {}", vertices.len() / 6);
+        self.objects.push(
+            sphere_factory
+                .create(gl, &mut self.renderer, sphere_entity)
+                .ok_or("Sphere creation failed")?,
+        );
 
-        let vertex_buffer =
-            VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
+        let sphere_factory = {
+            let (verts, faces) = gen_sphere_faces(1);
+            ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
+        };
 
-        let mut layout = VertexBufferLayout::new();
-        layout.push(GL::FLOAT, 3, 4, "a_position", false);
-        layout.push(GL::FLOAT, 3, 4, "a_normal", false);
-
-        let mut vao = VertexArray::new();
-        vao.add_buffer(vertex_buffer, layout);
-
-        let shader = shader_factory
-            .create_shader(gl, HashMap::new())
-            .ok_or("failed to create new shader")?;
-        let sphere_renderable = DefaultRenderable::new(None, vao, shader, None);
-        self.uniform_handles.push(sphere_renderable.handle());
-        self.renderer.add_renderable(sphere_renderable, 0);
-
-        // Setup sphere2
         let sphere_entity = Entity::default()
             .with_position(Vector3::new(-500.0, 0.0, -500.0))
             .with_hom_scale(50.0)
             .with_ang_speed(Vector3::new(30.0, 60.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
-        self.entities.push(sphere_entity);
+        self.objects.push(
+            sphere_factory
+                .create(gl, &mut self.renderer, sphere_entity)
+                .ok_or("Sphere creation failed")?,
+        );
 
-        let vertices = models::gen_sphere_icosahedral(1.0);
-        console_log!("Verts count {}", vertices.len() / 6);
-
-        let vertex_buffer =
-            VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
-
-        let mut layout = VertexBufferLayout::new();
-        layout.push(GL::FLOAT, 3, 4, "a_position", false);
-        layout.push(GL::FLOAT, 3, 4, "a_normal", false);
-
-        let mut vao = VertexArray::new();
-        vao.add_buffer(vertex_buffer, layout);
-
-        let shader = shader_factory
-            .create_shader(gl, HashMap::new())
-            .ok_or("failed to create new shader")?;
-        let sphere_renderable = DefaultRenderable::new(None, vao, shader, None);
-        self.uniform_handles.push(sphere_renderable.handle());
-        self.renderer.add_renderable(sphere_renderable, 0);
-
-        // Setup cube
         let cube_entity = Entity::default()
             .with_position(Vector3::new(500.0, 0.0, -500.0))
             .with_hom_scale(50.0)
             .with_ang_speed(Vector3::new(10.0, 30.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
-        self.entities.push(cube_entity);
-
-        let (vertices, normals, indx) = models::gen_cube();
-        console_log!("Verts count {}, index count {}", vertices.len(), indx.len());
-        let index_buffer = IndexBuffer::index_buffer(gl, indx).ok_or("Failed to get indicies")?;
-        let vertex_buffer =
-            VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
-        let normal_buffer =
-            VertexBuffer::vertex_buffer(gl, normals).ok_or("Failed to get vertices")?;
-
-        let mut layout = VertexBufferLayout::new();
-        layout.push(GL::FLOAT, 3, 4, "a_position", false);
-
-        let mut normal_layout = VertexBufferLayout::new();
-        normal_layout.push(GL::FLOAT, 3, 4, "a_normal", false);
-
-        let mut vao = VertexArray::new();
-        vao.add_buffer(vertex_buffer, layout);
-        vao.add_buffer(normal_buffer, normal_layout);
-
-        let shader = shader_factory
-            .create_shader(gl, HashMap::new())
-            .ok_or("failed to create new shader")?;
-        let cube_renderable = DefaultRenderable::new(index_buffer, vao, shader, None);
-        self.uniform_handles.push(cube_renderable.handle());
-        self.renderer.add_renderable(cube_renderable, 0);
+        self.objects.push(
+            cube_factory
+                .create(gl, &mut self.renderer, cube_entity)
+                .ok_or("Cube creation failed")?,
+        );
 
         // Setup floor
         let cube_entity = Entity::default()
             .with_position(Vector3::new(0.0, -100.0, 0.0))
             .with_scale(5000.0, 5.0, 5000.0);
-        self.entities.push(cube_entity);
-
-        let (vertices, normals, indx) = models::gen_cube();
-        console_log!("Verts count {}, index count {}", vertices.len(), indx.len());
-        let index_buffer = IndexBuffer::index_buffer(gl, indx).ok_or("Failed to get indicies")?;
-        let vertex_buffer =
-            VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
-        let normal_buffer =
-            VertexBuffer::vertex_buffer(gl, normals).ok_or("Failed to get vertices")?;
-
-        let mut layout = VertexBufferLayout::new();
-        layout.push(GL::FLOAT, 3, 4, "a_position", false);
-
-        let mut normal_layout = VertexBufferLayout::new();
-        normal_layout.push(GL::FLOAT, 3, 4, "a_normal", false);
-
-        let mut vao = VertexArray::new();
-        vao.add_buffer(vertex_buffer, layout);
-        vao.add_buffer(normal_buffer, normal_layout);
-
-        let shader = shader_factory
-            .create_shader(gl, HashMap::new())
-            .ok_or("failed to create new shader")?;
-        let cube_renderable = DefaultRenderable::new(index_buffer, vao, shader, None);
-        self.uniform_handles.push(cube_renderable.handle());
-        self.renderer.add_renderable(cube_renderable, 0);
-
-        // Setup fancy circle
-        let circle_thing = Entity::default()
-            .with_position(Vector3::new(0.0, 0.0, -200.0))
-            .with_hom_scale(50.0);
-        self.entities.push(circle_thing);
-
-        let vertices = models::gen_circle(0.5, 8 * 4);
-        let vertex_buffer =
-            VertexBuffer::vertex_buffer(gl, vertices).ok_or("Failed to get vertices")?;
-
-        self.circle_handle = Some(vertex_buffer.handle());
-
-        let mut layout = VertexBufferLayout::new();
-        layout.push(GL::FLOAT, 3, 4, "a_position", false);
-        layout.push(GL::FLOAT, 3, 4, "a_color", false);
-
-        let mut vao = VertexArray::new();
-        vao.add_buffer(vertex_buffer, layout);
-
-        // TODO: This needs to change too
-        let shader = Shader::single(
-            gl,
-            &fetch("shaders/circle.frag").await?,
-            &fetch("shaders/circle.vert").await?,
-            HashMap::new(),
-        )
-        .ok_or("failed to create new shader")?;
-        let circle_thing = DefaultRenderable::new(None, vao, shader, None);
-        self.uniform_handles.push(circle_thing.handle());
-        self.renderer.add_renderable(circle_thing, 0);
-
-        for uniform_handle in &mut self.uniform_handles {
-            uniform_handle.single(
-                "u_reverseLightDirection",
-                Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
-            );
-        }
+        self.objects.push(
+            cube_factory
+                .create(gl, &mut self.renderer, cube_entity)
+                .ok_or("Cube creation failed")?,
+        );
 
         unsafe {
             console_log!(
@@ -333,18 +205,15 @@ impl WebGl {
     }
 
     pub fn update(&mut self, dt: f64) -> Result<(), JsValue> {
+        self.fps_counter.update(dt);
+
         self.camera.update().ok_or("Couldn't update camera")?;
         let gl = &self.gl;
 
-        for (uniform_handle, entity) in self.uniform_handles.iter().zip(self.entities.iter_mut()) {
-            entity.update(dt as f32);
-
-            uniform_handle.single(
-                "u_worldViewProjection",
-                UniformMat4::new_mat4(self.camera.world_view_projection_matrix()),
-            );
-            uniform_handle.single("u_world", UniformMat4::new_mat4(entity.world_matrix()));
-        }
+        let camera = &self.camera;
+        self.objects
+            .iter_mut()
+            .for_each(|object| object.update(dt as f32, camera));
 
         self.renderer
             .update(gl)

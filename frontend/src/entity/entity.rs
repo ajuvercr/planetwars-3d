@@ -1,68 +1,71 @@
-use cgmath::{prelude::Zero, Angle, Deg, Euler, Matrix4, SquareMatrix, Vector3};
+use cgmath::{Angle, Deg, Euler, Matrix4, Vector3};
+use pw_derive::Settings;
+use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Settings, Serialize, Deserialize)]
 pub struct Entity {
-    position: Vector3<f32>,
-    speed: Vector3<f32>,
-    rotation: Vector3<f32>,
-    ang_speed: Vector3<f32>,
+    position: Vec3,
+    speed: Vec3,
+    rotation: Vec3,
+    ang_speed: Vec3,
 
-    scale: Matrix4<f32>,
+    scale: Vec3,
 }
 
 impl Default for Entity {
     fn default() -> Self {
         Entity {
-            position: Vector3::zero(),
-            speed: Vector3::zero(),
-            ang_speed: Vector3::zero(),
-            rotation: Vector3::zero(),
-            scale: Matrix4::identity(),
+            position: Vec3::zero(),
+            speed: Vec3::zero(),
+            ang_speed: Vec3::zero(),
+            rotation: Vec3::zero(),
+            scale: Vec3::one(),
         }
     }
 }
 
 impl Entity {
     pub fn with_position(mut self, position: Vector3<f32>) -> Self {
-        self.position = position;
+        self.position = position.into();
         self
     }
 
     pub fn with_speed(mut self, speed: Vector3<f32>) -> Self {
-        self.speed = speed;
+        self.speed = speed.into();
         self
     }
 
     pub fn with_rotation<A: Angle>(mut self, rotation: Vector3<f32>) -> Self {
-        self.rotation = rotation;
+        self.rotation = rotation.into();
         self
     }
 
     pub fn with_ang_speed(mut self, ang_speed: Vector3<f32>) -> Self {
-        self.ang_speed = ang_speed;
+        self.ang_speed = ang_speed.into();
         self
     }
 
     pub fn with_hom_scale(mut self, s: f32) -> Self {
-        self.scale = Matrix4::from_scale(s);
+        self.scale = Vec3::new(s, s, s);
         self
     }
 
     pub fn with_scale(mut self, x: f32, y: f32, z: f32) -> Self {
-        self.scale = Matrix4::from_nonuniform_scale(x, y, z);
+        self.scale = Vec3::new(x, y, z);
         self
     }
 
     pub fn rotation(&self) -> Matrix4<f32> {
-        let Vector3 { x, y, z } = self.rotation;
+        let Vec3 { x, y, z } = self.rotation;
         Euler::new(Deg(x), Deg(y), Deg(z)).into()
     }
 
-    pub fn position(&self) -> &Vector3<f32> {
-        &self.position
+    pub fn position(&self) -> Vector3<f32> {
+        self.position.into()
     }
 
-    pub fn speed(&self) -> &Vector3<f32> {
-        &self.speed
+    pub fn speed(&self) -> Vector3<f32> {
+        self.speed.into()
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -73,6 +76,117 @@ impl Entity {
     /// Matrix to transform vertices to the correct location in the world
     #[inline]
     pub fn world_matrix(&self) -> Matrix4<f32> {
-        Matrix4::from_translation(self.position) * self.rotation() * self.scale
+        Matrix4::from_translation(self.position.into())
+            * self.rotation()
+            * Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z)
+    }
+}
+
+use vec3::Vec3;
+mod vec3 {
+    use cgmath::Vector3;
+
+    use std::ops::{Add, AddAssign, Mul, MulAssign};
+
+    use pw_derive::Settings;
+    use serde::{Deserialize, Serialize};
+    #[derive(Serialize, Deserialize, Debug, Settings, Clone, Copy)]
+    pub struct Vec3 {
+        pub x: f32,
+        pub y: f32,
+        pub z: f32,
+    }
+
+    impl Vec3 {
+        #[inline]
+        pub fn zero() -> Self {
+            Self::new(0.0, 0.0, 0.0)
+        }
+
+        #[inline]
+        pub fn one() -> Self {
+            Self::new(1.0, 1.0, 1.0)
+        }
+
+        #[inline]
+        pub fn new(x: f32, y: f32, z: f32) -> Self {
+            Self { x, y, z }
+        }
+    }
+
+    impl Mul<f32> for Vec3 {
+        // The multiplication of rational numbers is a closed operation.
+        type Output = Self;
+        fn mul(mut self, d: f32) -> Self {
+            self.x *= d;
+            self.y *= d;
+            self.z *= d;
+            self
+        }
+    }
+
+    impl MulAssign<f32> for Vec3 {
+        // The multiplication of rational numbers is a closed operation.
+        fn mul_assign(&mut self, d: f32) {
+            self.x *= d;
+            self.y *= d;
+            self.z *= d;
+        }
+    }
+
+    impl Add<&Vec3> for Vec3 {
+        // The multiplication of rational numbers is a closed operation.
+        type Output = Self;
+        fn add(mut self, rhs: &Vec3) -> Self {
+            self.x += rhs.x;
+            self.y += rhs.y;
+            self.z += rhs.z;
+            self
+        }
+    }
+
+    impl Add<Vec3> for Vec3 {
+        // The multiplication of rational numbers is a closed operation.
+        type Output = Self;
+        fn add(mut self, rhs: Vec3) -> Self {
+            self.x += rhs.x;
+            self.y += rhs.y;
+            self.z += rhs.z;
+            self
+        }
+    }
+
+    impl AddAssign<&Vec3> for Vec3 {
+        // The multiplication of rational numbers is a closed operation.
+        fn add_assign(&mut self, rhs: &Vec3) {
+            self.x += rhs.x;
+            self.y += rhs.y;
+            self.z += rhs.z;
+        }
+    }
+
+    impl AddAssign<Vec3> for Vec3 {
+        // The multiplication of rational numbers is a closed operation.
+        fn add_assign(&mut self, rhs: Vec3) {
+            self.x += rhs.x;
+            self.y += rhs.y;
+            self.z += rhs.z;
+        }
+    }
+
+    impl From<Vector3<f32>> for Vec3 {
+        fn from(vec: Vector3<f32>) -> Self {
+            Self {
+                x: vec.x,
+                y: vec.y,
+                z: vec.z,
+            }
+        }
+    }
+
+    impl Into<Vector3<f32>> for Vec3 {
+        fn into(self) -> Vector3<f32> {
+            Vector3::new(self.x, self.y, self.z)
+        }
     }
 }

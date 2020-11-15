@@ -14,9 +14,13 @@ pub use webgl::*;
 
 pub mod settings;
 
+pub mod engine;
+
 pub mod models;
 
 pub mod delaunay;
+
+pub mod util;
 
 #[wasm_bindgen]
 extern "C" {

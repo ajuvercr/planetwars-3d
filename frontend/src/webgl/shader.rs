@@ -51,6 +51,7 @@ fn create_program(gl: &GL, shaders: Vec<web_sys::WebGlShader>) -> Option<web_sys
     Some(program)
 }
 
+#[derive(Clone)]
 pub struct ShaderFactory {
     frag_source: String,
     vert_source: String,

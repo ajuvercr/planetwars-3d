@@ -131,8 +131,8 @@ impl Renderer {
         }
 
         let layer = self.layers.get_mut(&layer).unwrap();
+        let out = layer.len();
         layer.push((Box::new(item), true));
-        let out = layer.len() - 1;
 
         out
     }

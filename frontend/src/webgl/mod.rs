@@ -4,7 +4,8 @@ pub use webgl::*;
 pub mod shader;
 use shader::Shader;
 
-mod buffer;
+pub mod buffer;
 
 pub mod renderer;
+pub mod traits;
 pub mod uniform;

@@ -128,7 +128,7 @@ impl WebGl {
 
         let sphere_factory = {
             let (verts, faces) = gen_sphere_faces(3);
-            ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
+            ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone())
         };
 
         let cube_factory = {
@@ -138,7 +138,7 @@ impl WebGl {
 
         let ship_factory = {
             let (verts, faces) = util::load_ship().await.ok_or("Ship loading failed!")?;
-            ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
+            ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone())
         };
 
         // Setup sphere

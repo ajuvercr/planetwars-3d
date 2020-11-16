@@ -13,3 +13,15 @@ pub type Index = usize;
 pub type Float = f32;
 
 pub type Vector<A> = [A; 3];
+
+pub enum Mesh {
+    Indexed {
+        vertices: Vec<Float>,
+        normals: Vec<Float>,
+        indices: Vec<u16>,
+    },
+    NotIndexed {
+        vertices: Vec<Float>,
+        normals: Vec<Float>,
+    },
+}

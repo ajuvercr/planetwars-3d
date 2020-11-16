@@ -1,6 +1,6 @@
-use cgmath::Vector4;
 use super::{Entity, Vec3};
 use crate::set_info;
+use cgmath::Vector4;
 use cgmath::{perspective, prelude::SquareMatrix, Deg, Matrix4, Vector3};
 use std::sync::mpsc;
 use wasm_bindgen::prelude::*;
@@ -174,12 +174,7 @@ impl Camera {
             let position = self.entity.position();
             let rotation = self.entity.rotation();
             set_info(
-                position.x,
-                position.y,
-                position.z,
-                rotation.x,
-                rotation.y,
-                rotation.z,
+                position.x, position.y, position.z, rotation.x, rotation.y, rotation.z,
             );
         }
 

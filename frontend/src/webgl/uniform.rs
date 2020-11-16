@@ -21,11 +21,19 @@ impl UniformsHandle {
     pub fn batch(&self, uniforms: HashMap<String, Box<dyn Uniform>>) -> Option<()> {
         self.inner.send(UniformUpdate::Batch(uniforms)).ok()
     }
+    pub fn enable(&self) -> Option<()> {
+        self.inner.send(UniformUpdate::Enable).ok()
+    }
+    pub fn disable(&self) -> Option<()> {
+        self.inner.send(UniformUpdate::Disable).ok()
+    }
 }
 
 pub enum UniformUpdate {
     Single(String, Box<dyn Uniform>),
     Batch(HashMap<String, Box<dyn Uniform>>),
+    Disable,
+    Enable,
 }
 
 /************************************************************************/

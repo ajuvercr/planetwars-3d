@@ -6,7 +6,8 @@ macro_rules! console_log {
     ($($t:tt)*) => (#[allow(unused_unsafe)] unsafe { crate::log(&format_args!($($t)*).to_string()) })
 }
 
-#[macro_use] extern crate add_getters_setters;
+#[macro_use]
+extern crate add_getters_setters;
 
 use wasm_bindgen::prelude::*;
 
@@ -20,6 +21,8 @@ pub mod engine;
 pub mod models;
 
 pub mod delaunay;
+
+pub mod universe;
 
 pub mod util;
 

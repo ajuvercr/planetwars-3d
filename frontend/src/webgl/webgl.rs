@@ -1,6 +1,8 @@
 use crate::models::gen_cube_faces;
 use crate::models::gen_sphere_faces;
 use crate::util;
+use crate::webgl::renderer::BatchRenderable;
+use crate::webgl::renderer::BatchRenderableHandle;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -10,6 +12,7 @@ use pw_settings::SettingsTrait;
 
 use super::super::models;
 use super::{buffer::BufferHandle, renderer::Renderer, Shader};
+use crate::uniform::Uniform3f;
 use crate::{
     engine::{Camera, CameraHandle, Entity},
     set_settings,
@@ -38,6 +41,15 @@ pub struct WebGl {
 unsafe impl Send for WebGl {}
 
 unsafe impl Sync for WebGl {}
+
+fn create_object(r: &BatchRenderableHandle, entity: Entity) -> Option<Object> {
+    let handle = r.push()?;
+    handle.single(
+        "u_reverseLightDirection",
+        Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
+    );
+    Some(Object::new(handle, entity))
+}
 
 #[wasm_bindgen]
 impl WebGl {
@@ -108,10 +120,11 @@ impl WebGl {
         // Enable the depth buffer
         gl.enable(GL::DEPTH_TEST);
 
-        let vert_source = util::fetch("shaders/basic.vert").await?;
-        let frag_source = util::fetch("shaders/basic.frag").await?;
-
-        let shader_factory = Shader::factory(frag_source, vert_source);
+        let shader_factory = {
+            let vert_source = util::fetch("shaders/basic.vert").await?;
+            let frag_source = util::fetch("shaders/basic.frag").await?;
+            Shader::factory(frag_source, vert_source)
+        };
 
         let sphere_factory = {
             let (verts, faces) = gen_sphere_faces(3);
@@ -132,27 +145,35 @@ impl WebGl {
         let sphere_entity = Entity::default()
             .with_position(Vector3::new(0.0, 0.0, -500.0))
             .with_ang_speed(Vector3::new(30.0, 60.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
-
         {
             let mut sphere_entity = sphere_entity.clone();
             sphere_entity.set_position(Vector3::new(0.0, 0.0, -800.0).into());
             sphere_entity.set_scale(Vector3::new(50.0, 50.0, 50.0).into());
             self.objects.push(
                 sphere_factory
-                .create(gl, &mut self.renderer, sphere_entity)
-                .ok_or("Sphere creation failed")?,
+                    .create(gl, &mut self.renderer, sphere_entity)
+                    .ok_or("Sphere creation failed")?,
             );
         }
 
-        for i in -3..3 {
-            for j in 0..3 {
+        let ship_creation_handle = {
+            let ship_renderable = BatchRenderable::new(
+                ship_factory
+                    .create_renderable(gl)
+                    .ok_or("Failed to created renderable ship")?,
+            );
+            let handle = ship_renderable.handle();
+            self.renderer.add_renderable(ship_renderable, 0);
+            handle
+        };
+
+        for i in -10..10 {
+            for j in 0..7 {
                 let mut sphere_entity = sphere_entity.clone();
-                sphere_entity.set_position(Vector3::new((i * 50) as f32, (j * 100) as f32, -500.0).into());
-                self.objects.push(
-                    ship_factory
-                    .create(gl, &mut self.renderer, sphere_entity)
-                    .ok_or("Ship creation failed")?,
-                );
+                sphere_entity
+                    .set_position(Vector3::new((i * 50) as f32, (j * 100) as f32, -500.0).into());
+                self.objects
+                    .push(create_object(&ship_creation_handle, sphere_entity).ok_or("bla")?);
             }
         }
 

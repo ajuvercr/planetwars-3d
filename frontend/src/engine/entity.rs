@@ -4,16 +4,21 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Settings, Serialize, Deserialize, AddGetterVal, AddSetter)]
 pub struct Entity {
-    #[get_val] #[set]
+    #[get_val]
+    #[set]
     position: Vec3,
-    #[get_val] #[set]
+    #[get_val]
+    #[set]
     speed: Vec3,
-    #[get_val] #[set]
+    #[get_val]
+    #[set]
     rotation: Vec3,
-    #[get_val] #[set]
+    #[get_val]
+    #[set]
     ang_speed: Vec3,
 
-    #[get_val] #[set]
+    #[get_val]
+    #[set]
     scale: Vec3,
 }
 

@@ -1,4 +1,4 @@
-use super::{Entity, Camera};
+use super::{Camera, Entity};
 use crate::uniform::{Uniform3f, UniformMat4};
 use crate::webgl::buffer::{VertexArray, VertexBuffer, VertexBufferLayout};
 use crate::webgl::renderer::{DefaultRenderable, Renderer};
@@ -108,6 +108,19 @@ impl ObjectFactory {
 
     // TODO this "u_reverseLightDirection" shouldn't be here
     pub fn create(&self, gl: &GL, renderer: &mut Renderer, entity: Entity) -> Option<Object> {
+        let renderable = self.create_renderable(gl)?;
+
+        let uniforms = renderable.handle();
+        uniforms.single(
+            "u_reverseLightDirection",
+            Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
+        );
+        renderer.add_renderable(renderable, 0);
+
+        Some(Object { uniforms, entity })
+    }
+
+    pub fn create_renderable(&self, gl: &GL) -> Option<DefaultRenderable> {
         let shader = self.shader_factory.create_shader(gl, HashMap::new())?;
 
         let vertex_buffer = VertexBuffer::vertex_buffer(gl, self.vertices.clone())?;
@@ -123,15 +136,7 @@ impl ObjectFactory {
         vao.add_buffer(vertex_buffer, layout);
         vao.add_buffer(normal_buffer, normal_layout);
 
-        let renderable = DefaultRenderable::new(None, vao, shader, None);
-        let uniforms = renderable.handle();
-        uniforms.single(
-            "u_reverseLightDirection",
-            Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
-        );
-        renderer.add_renderable(renderable, 0);
-
-        Some(Object { uniforms, entity })
+        Some(DefaultRenderable::new(None, vao, shader, None))
     }
 }
 
@@ -141,6 +146,9 @@ pub struct Object {
 }
 
 impl Object {
+    pub fn new(uniforms: UniformsHandle, entity: Entity) -> Self {
+        Self { uniforms, entity }
+    }
     pub fn update(&mut self, dt: f32, camera: &Camera) {
         self.entity.update(dt);
 

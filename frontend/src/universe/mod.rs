@@ -1,11 +1,13 @@
 mod planet;
-use crate::engine::Object;
-use crate::webgl::renderer::Renderable;
-use std::collections::{HashMap, VecDeque};
+use crate::engine::Camera;
+use crate::webgl::renderer::{BatchRenderableHandle, BatchRenderable};
+use crate::models::gen_sphere_faces;
+use crate::engine::{Object, ObjectConfig, ObjectFactory};
+use crate::uniform::Uniform3f;
 
-use crate::{buffer::VertexArray, renderer::DefaultRenderable, util::*};
+use crate::{util::*};
 use crate::{
-    buffer::VertexBuffer, buffer::VertexBufferLayout, engine::Entity, models, shader::Shader,
+    shader::Shader,
     webgl::renderer::Renderer,
 };
 pub use planet::Planet;
@@ -32,9 +34,13 @@ impl Default for Planets {
 impl Planets {
     pub async fn load(location: &str) -> Self {
         let ms = fetch(location).await;
-        ms.ok()
-            .and_then(|s| serde_json::from_str(&s).ok())
-            .unwrap_or_default()
+        match ms.and_then(|s| serde_json::from_str(&s).map_err(|e| wasm_bindgen::JsValue::from(format!("{:?}", e)))) {
+                Ok(e) => e,
+                Err(e) => {
+                    console_log!("Planets failed {:?}", e);
+                    Self::default()
+                }
+            }
     }
 
     pub fn save(&self, _location: &str) {
@@ -42,84 +48,80 @@ impl Planets {
     }
 }
 
-enum Action {
-    Planets(Planets),
-}
-
 pub struct Universe {
     objects: Vec<Object>,
-    planets: Planets,
-
-    queue: VecDeque<Action>,
+    planet_factory: BatchRenderableHandle,
 }
 
 pub const PLANET_LAYER: usize = 0;
 
 impl Universe {
-    pub async fn init(
-        gl: &GL,
-        planet_count: usize,
-        renderer: &mut Renderer,
-    ) -> Result<Self, JsValue> {
-        let vert_source = fetch("shaders/basic.vert").await?;
-        let frag_source = fetch("shaders/basic.frag").await?;
-        let shader_factory = Shader::factory(frag_source, vert_source);
-
-        let vertices = models::gen_sphere_icosahedral(5.0);
-
-        let mut u_handles = Vec::new();
-
-        for i in 0..planet_count {
-            let entity = Entity::default().with_hom_scale(0.0);
-            let name = format!("Planet {}", i);
-
-            let planet = Planet::new(name, entity);
-
-            let vertex_buffer = VertexBuffer::vertex_buffer(gl, vertices.clone())
-                .ok_or("Failed to get vertices")?;
-
-            let mut layout = VertexBufferLayout::new();
-            layout.push(GL::FLOAT, 3, 4, "a_position", false);
-            layout.push(GL::FLOAT, 3, 4, "a_normal", false);
-
-            let mut vao = VertexArray::new();
-            vao.add_buffer(vertex_buffer, layout);
-
-            let shader = shader_factory
-                .create_shader(gl, HashMap::new())
-                .ok_or("failed to create new shader")?;
-            let sphere_renderable = DefaultRenderable::new(None, vao, shader, None);
-            u_handles.push(sphere_renderable.handle());
-            renderer.add_renderable(sphere_renderable, PLANET_LAYER);
-        }
-
-        Ok(Self {
+    /// Creates a non functional Universe, like the real one.
+    /// Call and wait for `Universe::init` before use!
+    pub fn place_holder() -> Self {
+        Self {
             objects: Vec::new(),
-            planets: Planets {
-                planets: Vec::new(),
-            },
-            queue: VecDeque::new(),
-        })
+            planet_factory: BatchRenderableHandle::place_holder(),
+        }
     }
 
-    pub fn set_planets(&mut self, planets: Planets) -> Result<(), JsValue> {
-        self.queue.push_back(Action::Planets(planets));
+    pub async fn init(
+        &mut self,
+        gl: &GL,
+        renderer: &mut Renderer,
+        location: &str,
+    ) -> Result<Planets, JsValue> {
+        self.planet_factory = {
+            let vert_source = fetch("shaders/basic.vert").await?;
+            let frag_source = fetch("shaders/basic.frag").await?;
+            let shader_factory = Shader::factory(frag_source, vert_source);
+
+            let (verts, faces) = gen_sphere_faces(3);
+            let factory = ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone());
+            let renderable = factory.create_renderable(gl).ok_or("Failed to create planet renderable")?;
+
+            let ship_renderable = BatchRenderable::new(renderable);
+            let handle = ship_renderable.handle();
+            renderer.add_renderable(ship_renderable, 0);
+            handle
+        };
+
+        let planets = Planets::load(location).await;
+        self.set_planets(&planets)?;
+
+        Ok(planets)
+    }
+
+    pub fn set_planets(&mut self, planets: &Planets) -> Result<(), JsValue> {
+        // Set visable or not, or create new Objects
+        for planet in &planets.planets[self.objects.len()..] {
+            let handle = self.planet_factory.push().ok_or("Couldn't push hard enough")?;
+            handle.single(
+                "u_reverseLightDirection",
+                Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
+            );
+            self.objects.push(Object::new(handle, planet.location.clone()));
+        }
+
+        // Set new planet's entities
+        for (planet, object) in planets.planets.iter().zip(&mut self.objects) {
+            if planet.disabled {
+                object.disable();
+            } else {
+                object.enable();
+            }
+
+            object.set_entity(planet.location.clone());
+        }
+
+        for object in &self.objects[planets.planets.len()..] {
+            object.disable();
+        }
+
         Ok(())
     }
-}
 
-impl Renderable for Universe {
-    fn render(&mut self, gl: &GL) {
-        todo!()
-    }
-
-    fn update(&mut self, gl: &GL) -> Option<()> {
-        for action in self.queue.drain(..) {
-            match action {
-                Action::Planets(planets) => {}
-            }
-        }
-
-        todo!()
+    pub fn update(&mut self, dt: f64, camera: &Camera) {
+        self.objects.iter_mut().for_each(|o| o.update(dt as f32, camera));
     }
 }

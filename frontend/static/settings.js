@@ -95,6 +95,25 @@ function genArray(name, content, parent_cb = (e) => {}, readOnly=false) {
     return [div, changeText];
 }
 
+function genCheck(name, value, cb = (e) => {}, readOnly=false) {
+    const div = _genNamedDiv(name);
+
+    const valueField = document.createElement("input");
+    valueField.classList.add("input");
+    valueField.readOnly = readOnly;
+    valueField.type = "checkbox";
+
+    valueField.addEventListener("input", e => cb(e.target.checked));
+
+    const changeChecked = (t) => valueField.checked = t;
+    changeChecked(value);
+
+    div.appendChild(valueField);
+    cb(valueField.checked);
+
+    return [div, changeChecked];
+}
+
 function genSetting(field, setter, flush) {
     const cb = v => {
         setter(v);
@@ -110,6 +129,8 @@ function genSetting(field, setter, flush) {
             return genSlider(field.name, field.content, cb);
         case "settings":
             return genSettings(field.name, field.content, cb);
+        case "check":
+            return genCheck(field.name, field.content, cb);
         case "data":
             setter(field.content);
             break;

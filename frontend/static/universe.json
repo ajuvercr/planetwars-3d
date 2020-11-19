@@ -1,3 +1,35 @@
 {
-    "plants": []
+    "planets": [
+        {
+            "name": "Json town",
+            "location": {
+                "position": {
+                    "x": -5,
+                    "y": 20,
+                    "z": 0
+                },
+                "speed": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "rotation": {
+                    "x": -5,
+                    "y": 20,
+                    "z": 0
+                },
+                "ang_speed": {
+                    "x": -5,
+                    "y": 20,
+                    "z": 0
+                },
+                "scale": {
+                    "x": 50,
+                    "y": 50,
+                    "z": 50
+                }
+            },
+            "disabled": false
+        }
+    ]
 }

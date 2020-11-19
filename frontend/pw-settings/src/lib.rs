@@ -1,10 +1,12 @@
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use serde_json::Value;
 
 static FLOAT_DEFAULT: f32 = 0.0;
 static FLOAT_MIN: f32 = 0.0;
 static FLOAT_MAX: f32 = 1.0;
 static FLOAT_INC: f32 = 0.1;
+
+static BOOL_DEFAULT: bool = false;
 
 #[derive(Serialize, Debug)]
 #[serde(tag = "type", content = "content")]
@@ -28,6 +30,9 @@ pub enum FieldType {
 
     #[serde(rename = "array")]
     Array(Vec<FieldType>),
+
+    #[serde(rename = "check")]
+    Bool(bool),
 }
 
 #[derive(Serialize, Debug)]
@@ -134,6 +139,15 @@ impl FieldTrait for f32 {
             max: config.max.unwrap_or(FLOAT_MAX),
             inc: config.inc.unwrap_or(FLOAT_INC),
         }
+    }
+}
+
+impl FieldTrait for bool {
+    fn default_self(settings: &FieldConfig<Self>) -> Self {
+        settings.value.clone().unwrap_or(BOOL_DEFAULT)
+    }
+    fn to_field(&self, _: &FieldConfig<Self>) -> FieldType {
+        FieldType::Bool(*self)
     }
 }
 

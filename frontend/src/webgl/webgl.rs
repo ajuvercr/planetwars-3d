@@ -1,3 +1,5 @@
+use crate::universe::Planets;
+use crate::universe::Universe;
 use crate::models::gen_cube_faces;
 use crate::models::gen_sphere_faces;
 use crate::util;
@@ -7,11 +9,9 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::engine::{Object, ObjectConfig, ObjectFactory};
-use crate::settings::TheseSettings;
 use pw_settings::SettingsTrait;
 
-use super::super::models;
-use super::{buffer::BufferHandle, renderer::Renderer, Shader};
+use super::{renderer::Renderer, Shader};
 use crate::uniform::Uniform3f;
 use crate::{
     engine::{Camera, CameraHandle, Entity},
@@ -26,9 +26,8 @@ pub struct WebGl {
     canvas: HtmlCanvasElement,
     gl: GL,
 
-    circle_handle: Option<BufferHandle<Vec<f32>>>,
-
     objects: Vec<Object>,
+    universe: Universe,
 
     camera: Camera,
     camera_handle: CameraHandle,
@@ -78,12 +77,12 @@ impl WebGl {
         Ok(Self {
             canvas,
             gl,
+
             objects: Vec::new(),
+            universe: Universe::place_holder(),
 
             camera,
             camera_handle,
-
-            circle_handle: None,
 
             renderer: Renderer::new(),
             fps_counter: util::FpsCounter::new(),
@@ -119,6 +118,17 @@ impl WebGl {
 
         // Enable the depth buffer
         gl.enable(GL::DEPTH_TEST);
+
+        {
+            let planets = self.universe.init(gl, &mut self.renderer, "universe.json").await?;
+
+            let js_value = JsValue::from_serde(&planets.to_settings())
+                .map_err(|_| "Serde Failed")
+                .unwrap();
+            println!("js value {:?}", js_value);
+            unsafe { set_settings(js_value) };
+        }
+
 
         let shader_factory = {
             let vert_source = util::fetch("shaders/basic.vert").await?;
@@ -212,34 +222,22 @@ impl WebGl {
                 .ok_or("Cube creation failed")?,
         );
 
-        unsafe {
-            console_log!(
-                "Sending settings {:?}",
-                JsValue::from_serde(&TheseSettings::new_settings())
-            );
-            set_settings(
-                JsValue::from_serde(&TheseSettings::new_settings()).map_err(|_| "Serde Failed")?,
-            )
-        };
-
         Ok(self)
     }
 
     pub fn handle_client_update(&mut self, val: &JsValue) {
-        if let Some(mut settings) = val.into_serde::<TheseSettings>().ok() {
-            console_log!("Settings update {:?}", settings);
-            settings.count += 1.0;
-            let js_value = JsValue::from_serde(&settings.to_settings())
-                .map_err(|_| "Serde Failed")
-                .unwrap();
-            println!("js value {:?}", js_value);
-            unsafe { set_settings(js_value) };
+        match val.into_serde::<Planets>() {
+            Ok(planets) => {
+                match self.universe.set_planets(&planets) {
+                    Ok(_) => {},
+                    Err(e) => {
+                        console_log!("Woops something failed {:?}", e)
+                    },
+                }
+            },
+            Err(e) => {
+                console_log!("Serde failed {:?}", e)
 
-            if let Some(handle) = &self.circle_handle {
-                handle.reset(models::gen_circle(
-                    settings.inner_diameter,
-                    settings.count as usize,
-                ));
             }
         }
     }
@@ -251,6 +249,8 @@ impl WebGl {
         let gl = &self.gl;
 
         let camera = &self.camera;
+
+        self.universe.update(dt, camera);
         self.objects
             .iter_mut()
             .for_each(|object| object.update(dt as f32, camera));

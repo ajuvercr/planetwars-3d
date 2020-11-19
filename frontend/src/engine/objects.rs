@@ -239,4 +239,28 @@ impl Object {
         self.uniforms
             .single("u_world", UniformMat4::new_mat4(self.entity.world_matrix()));
     }
+    pub fn enable(&self) {
+        self.uniforms.enable();
+    }
+    pub fn disable(&self) {
+        self.uniforms.disable();
+    }
+
+    pub fn set_entity(&mut self, entity: Entity) {
+        self.entity = entity;
+    }
+}
+
+use std::ops::{Deref, DerefMut};
+impl Deref for Object {
+    type Target = Entity;
+    fn deref(&self) -> &Entity {
+        &self.entity
+    }
+}
+
+impl DerefMut for Object {
+    fn deref_mut(&mut self) -> &mut Entity {
+        &mut self.entity
+    }
 }

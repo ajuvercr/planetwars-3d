@@ -147,6 +147,12 @@ pub struct BatchRenderableHandle {
 }
 
 impl BatchRenderableHandle {
+    pub fn place_holder() -> Self {
+        let (tx, _) = mpsc::channel();
+        Self {
+            inner: tx,
+        }
+    }
     pub fn push(&self) -> Option<UniformsHandle> {
         let (tx, rx) = mpsc::channel();
         self.inner
@@ -162,6 +168,7 @@ pub struct BatchRenderable<R: BatchRenderableTrait> {
         mpsc::Receiver<UniformUpdate>,
         HashMap<String, Box<dyn Uniform>>,
     )>,
+    disabled: Vec<bool>,
     senders: Vec<mpsc::Sender<UniformUpdate>>,
     handle: (
         mpsc::Sender<BatchRenderableHandleUpdate>,
@@ -175,6 +182,7 @@ impl<R: BatchRenderableTrait> BatchRenderable<R> {
             inner,
             uniforms: Vec::new(),
             senders: Vec::new(),
+            disabled: Vec::new(),
             handle: mpsc::channel(),
         }
     }
@@ -189,14 +197,23 @@ impl<R: BatchRenderableTrait> BatchRenderable<R> {
         let (tx, rx) = mpsc::channel();
         self.uniforms.push((rx, HashMap::new()));
         self.senders.push(tx.clone());
+        self.disabled.push(false);
         UniformsHandle::new(tx)
     }
 }
 
 impl<R: BatchRenderableTrait> Renderable for BatchRenderable<R> {
     fn render(&mut self, gl: &GL) {
+        if self.uniforms.is_empty() {
+            return;
+        }
+
         self.inner.bind(gl);
-        for (_, uniforms) in self.uniforms.iter_mut() {
+        for ((_, uniforms), disabled) in self.uniforms.iter_mut().zip(&self.disabled) {
+            if *disabled {
+                continue;
+            }
+
             let shader = self.inner.shader();
             for (name, uniform) in uniforms.iter() {
                 if shader.uniform(gl, &name, &uniform).is_none() {
@@ -213,6 +230,7 @@ impl<R: BatchRenderableTrait> Renderable for BatchRenderable<R> {
                 Ok(BatchRenderableHandleUpdate::Create(tx, rx)) => {
                     self.uniforms.push((rx, HashMap::new()));
                     self.senders.push(tx.clone());
+                    self.disabled.push(false);
                 }
                 Err(mpsc::TryRecvError::Disconnected) => return None,
                 Err(mpsc::TryRecvError::Empty) => break,
@@ -220,7 +238,7 @@ impl<R: BatchRenderableTrait> Renderable for BatchRenderable<R> {
         }
         self.inner.update(gl)?;
 
-        for (rx, uniforms) in self.uniforms.iter_mut() {
+        for ((rx, uniforms), ref mut disabled) in self.uniforms.iter_mut().zip(&mut self.disabled) {
             loop {
                 match rx.try_recv() {
                     Ok(UniformUpdate::Batch(context)) => {
@@ -230,10 +248,10 @@ impl<R: BatchRenderableTrait> Renderable for BatchRenderable<R> {
                         uniforms.insert(name, uniform);
                     }
                     Ok(UniformUpdate::Disable) => {
-                        unreachable!();
+                        **disabled = true;
                     }
                     Ok(UniformUpdate::Enable) => {
-                        unreachable!();
+                        **disabled = false;
                     }
                     Err(mpsc::TryRecvError::Disconnected) => return None,
                     Err(mpsc::TryRecvError::Empty) => break,
@@ -244,7 +262,7 @@ impl<R: BatchRenderableTrait> Renderable for BatchRenderable<R> {
         Some(())
     }
     fn is_disabled(&self) -> bool {
-        self.inner.is_disabled()
+        false
     }
 }
 

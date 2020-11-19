@@ -5,8 +5,9 @@ use crate::engine::Entity;
 
 #[derive(Debug, Serialize, Deserialize, Settings, Clone)]
 pub struct Planet {
-    name: String,
-    location: Entity,
+    pub name: String,
+    pub location: Entity,
+    pub disabled: bool,
 }
 
 impl Planet {
@@ -14,6 +15,7 @@ impl Planet {
         Self {
             name: name.into(),
             location,
+            disabled: false,
         }
     }
 }

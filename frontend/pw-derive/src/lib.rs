@@ -39,6 +39,21 @@ impl AliasGenerator {
     }
 }
 
+const IGNORE_KEYS: [&'static str;1] = ["name"];
+fn gen_config_default_fields(map: &HashMap<String, syn::Lit>) -> TokenStream2 {
+    let mut out = Vec::new();
+
+    for (key, value) in map {
+        if IGNORE_KEYS[..].contains(&key.as_str()) { continue; }
+        let ident = syn::Ident::new(key, Span::call_site());
+        out.push(quote!{
+            #ident: #value.into(),
+        });
+    }
+
+    out.into_iter().collect()
+}
+
 
 #[proc_macro_derive(Settings, attributes(settings))]
 pub fn settings_derive(input: TokenStream) -> TokenStream {
@@ -108,8 +123,10 @@ pub fn settings_derive(input: TokenStream) -> TokenStream {
             }
         );
 
+        let defaults = gen_config_default_fields(&attrs);
         config_default_fields.push(quote! {
             #ident: #alias_ident {
+                #defaults
                 ..Default::default()
             },
         });

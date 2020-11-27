@@ -1,13 +1,13 @@
 use pw_derive::Settings;
 use serde::{Deserialize, Serialize};
 
-#[derive(Settings, Debug, Serialize, Deserialize, Clone)]
+// #[derive(Settings, Debug, Serialize, Deserialize, Clone)]
 pub struct InnerSettings {
     pub x: f32,
     pub y: f32,
 }
 
-#[derive(Settings, Serialize, Deserialize, Debug)]
+// #[derive(Settings, Serialize, Deserialize, Debug)]
 pub struct TheseSettings {
     // #[settings(name = "Slidy", value = 0.4, inc = 0.01)]
     pub inner_diameter: f32,

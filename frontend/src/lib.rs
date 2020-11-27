@@ -46,7 +46,7 @@ use pw_derive::Settings;
 pub struct NoDefault {}
 
 mod tmp;
-#[derive(Settings)]
+#[derive(Settings, Clone)]
 pub struct InnerSettings {
     #[settings(name = "Slidy", value = 0.4)]
     pub x: f32,
@@ -54,13 +54,13 @@ pub struct InnerSettings {
     pub y: Vec<f32>,
 }
 
-// #[derive(Settings)]
+#[derive(Settings, Clone)]
 pub struct SettingsInst {
-    // #[settings(name = "settings_name", value = 0.2)]
+    #[settings(name = "settings_name", value = 0.2, inc = 0.1, max = 10.0)]
     pub size: f32,
     pub cool_string: String,
-    // #[settings(id = "cool_id", name = "settings_name")]
-    pub foo: String,
+    #[settings(inner = [ x = [value = 0.2]])]
+    pub foo: InnerSettings,
 
     pub location: Vec<f32>,
 }

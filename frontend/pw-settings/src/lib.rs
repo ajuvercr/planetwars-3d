@@ -162,14 +162,14 @@ impl FieldTrait for f32 {
 
 #[derive(Default, Clone)]
 pub struct DefaultConfig<T> {
-    pub value: Option<T>,
+    pub inner: Option<T>,
 }
 
 impl FieldTrait for bool {
     type Config = DefaultConfig<bool>;
 
     fn default_self(settings: &DefaultConfig<Self>) -> Self {
-        settings.value.clone().unwrap_or_default()
+        settings.inner.clone().unwrap_or_default()
     }
     fn to_field(&self, _: &DefaultConfig<Self>) -> FieldType {
         FieldType::Bool(*self)
@@ -180,7 +180,7 @@ impl FieldTrait for String {
     type Config = DefaultConfig<String>;
 
     fn default_self(settings: &DefaultConfig<Self>) -> Self {
-        settings.value.clone().unwrap_or_default()
+        settings.inner.clone().unwrap_or_default()
     }
     fn to_field(&self, _: &DefaultConfig<Self>) -> FieldType {
         FieldType::Text(self.clone())

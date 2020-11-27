@@ -1,4 +1,4 @@
-use crate::models::gen_cube_faces;
+use crate::{SettingsInst, models::gen_cube_faces};
 use crate::models::gen_sphere_faces;
 use crate::universe::Planets;
 use crate::universe::Universe;
@@ -118,6 +118,13 @@ impl WebGl {
 
         // Enable the depth buffer
         gl.enable(GL::DEPTH_TEST);
+
+        {
+            use pw_settings::SettingsTrait;
+            let settings = SettingsInst::new_settings();
+            console_log!("Settings {:?}", settings);
+            // let settings = SettingsInst::default_settings
+        }
 
         // {
         //     let planets = self.universe.init(gl, &mut self.renderer, "universe.json").await?;

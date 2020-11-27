@@ -1,15 +1,12 @@
 mod planet;
 use crate::engine::Camera;
-use crate::webgl::renderer::{BatchRenderableHandle, BatchRenderable};
-use crate::models::gen_sphere_faces;
 use crate::engine::{Object, ObjectConfig, ObjectFactory};
+use crate::models::gen_sphere_faces;
 use crate::uniform::Uniform3f;
+use crate::webgl::renderer::{BatchRenderable, BatchRenderableHandle};
 
-use crate::{util::*};
-use crate::{
-    shader::Shader,
-    webgl::renderer::Renderer,
-};
+use crate::util::*;
+use crate::{shader::Shader, webgl::renderer::Renderer};
 pub use planet::Planet;
 use pw_derive::Settings;
 use serde::{Deserialize, Serialize};
@@ -18,7 +15,8 @@ use wasm_bindgen::JsValue;
 use serde_json;
 use web_sys::WebGlRenderingContext as GL;
 
-#[derive(Debug, Clone, Settings, Serialize, Deserialize)]
+// #[derive(Debug, Clone, Settings, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Planets {
     planets: Vec<Planet>,
 }
@@ -34,13 +32,15 @@ impl Default for Planets {
 impl Planets {
     pub async fn load(location: &str) -> Self {
         let ms = fetch(location).await;
-        match ms.and_then(|s| serde_json::from_str(&s).map_err(|e| wasm_bindgen::JsValue::from(format!("{:?}", e)))) {
-                Ok(e) => e,
-                Err(e) => {
-                    console_log!("Planets failed {:?}", e);
-                    Self::default()
-                }
+        match ms.and_then(|s| {
+            serde_json::from_str(&s).map_err(|e| wasm_bindgen::JsValue::from(format!("{:?}", e)))
+        }) {
+            Ok(e) => e,
+            Err(e) => {
+                console_log!("Planets failed {:?}", e);
+                Self::default()
             }
+        }
     }
 
     pub fn save(&self, _location: &str) {
@@ -77,8 +77,11 @@ impl Universe {
             let shader_factory = Shader::factory(frag_source, vert_source);
 
             let (verts, faces) = gen_sphere_faces(3);
-            let factory = ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone());
-            let renderable = factory.create_renderable(gl).ok_or("Failed to create planet renderable")?;
+            let factory =
+                ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone());
+            let renderable = factory
+                .create_renderable(gl)
+                .ok_or("Failed to create planet renderable")?;
 
             let ship_renderable = BatchRenderable::new(renderable);
             let handle = ship_renderable.handle();
@@ -95,12 +98,16 @@ impl Universe {
     pub fn set_planets(&mut self, planets: &Planets) -> Result<(), JsValue> {
         // Set visable or not, or create new Objects
         for planet in &planets.planets[self.objects.len()..] {
-            let handle = self.planet_factory.push().ok_or("Couldn't push hard enough")?;
+            let handle = self
+                .planet_factory
+                .push()
+                .ok_or("Couldn't push hard enough")?;
             handle.single(
                 "u_reverseLightDirection",
                 Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
             );
-            self.objects.push(Object::new(handle, planet.location.clone()));
+            self.objects
+                .push(Object::new(handle, planet.location.clone()));
         }
 
         // Set new planet's entities
@@ -122,6 +129,8 @@ impl Universe {
     }
 
     pub fn update(&mut self, dt: f64, camera: &Camera) {
-        self.objects.iter_mut().for_each(|o| o.update(dt as f32, camera));
+        self.objects
+            .iter_mut()
+            .for_each(|o| o.update(dt as f32, camera));
     }
 }

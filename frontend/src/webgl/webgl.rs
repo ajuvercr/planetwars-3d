@@ -1,7 +1,7 @@
-use crate::universe::Planets;
-use crate::universe::Universe;
 use crate::models::gen_cube_faces;
 use crate::models::gen_sphere_faces;
+use crate::universe::Planets;
+use crate::universe::Universe;
 use crate::util;
 use crate::webgl::renderer::BatchRenderable;
 use crate::webgl::renderer::BatchRenderableHandle;
@@ -119,16 +119,15 @@ impl WebGl {
         // Enable the depth buffer
         gl.enable(GL::DEPTH_TEST);
 
-        {
-            let planets = self.universe.init(gl, &mut self.renderer, "universe.json").await?;
+        // {
+        //     let planets = self.universe.init(gl, &mut self.renderer, "universe.json").await?;
 
-            let js_value = JsValue::from_serde(&planets.to_settings())
-                .map_err(|_| "Serde Failed")
-                .unwrap();
-            println!("js value {:?}", js_value);
-            unsafe { set_settings(js_value) };
-        }
-
+        //     let js_value = JsValue::from_serde(&planets.to_settings())
+        //         .map_err(|_| "Serde Failed")
+        //         .unwrap();
+        //     println!("js value {:?}", js_value);
+        //     unsafe { set_settings(js_value) };
+        // }
 
         let shader_factory = {
             let vert_source = util::fetch("shaders/basic.vert").await?;
@@ -227,17 +226,14 @@ impl WebGl {
 
     pub fn handle_client_update(&mut self, val: &JsValue) {
         match val.into_serde::<Planets>() {
-            Ok(planets) => {
-                match self.universe.set_planets(&planets) {
-                    Ok(_) => {},
-                    Err(e) => {
-                        console_log!("Woops something failed {:?}", e)
-                    },
+            Ok(planets) => match self.universe.set_planets(&planets) {
+                Ok(_) => {}
+                Err(e) => {
+                    console_log!("Woops something failed {:?}", e)
                 }
             },
             Err(e) => {
                 console_log!("Serde failed {:?}", e)
-
             }
         }
     }

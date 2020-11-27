@@ -2,7 +2,8 @@ use cgmath::{Angle, Deg, Euler, Matrix4, Vector3};
 use pw_derive::Settings;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Settings, Serialize, Deserialize, AddGetterVal, AddSetter)]
+// was settings
+#[derive(Debug, Clone, Serialize, Deserialize, AddGetterVal, AddSetter)]
 pub struct Entity {
     #[get_val]
     #[set]
@@ -92,7 +93,9 @@ mod vec3 {
 
     use pw_derive::Settings;
     use serde::{Deserialize, Serialize};
-    #[derive(Serialize, Deserialize, Debug, Settings, Clone, Copy)]
+
+    // was settings
+    #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
     pub struct Vec3 {
         pub x: f32,
         pub y: f32,

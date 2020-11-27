@@ -9,17 +9,17 @@ pub struct InnerSettings {
 
 #[derive(Settings, Serialize, Deserialize, Debug)]
 pub struct TheseSettings {
-    #[settings(name = "Slidy", value = 0.4, inc = 0.01)]
+    // #[settings(name = "Slidy", value = 0.4, inc = 0.01)]
     pub inner_diameter: f32,
-    #[settings(name = "Count", value = 12.0, max = 128.0, inc = 1.0)]
+    // #[settings(name = "Count", value = 12.0, max = 128.0, inc = 1.0)]
     pub count: f32,
     // #[settings(value=[0.4, 0.1, 0.7])]
     pub vector: Vec<f32>,
 
-    #[settings(value = "Hello world")]
+    // #[settings(value = "Hello world")]
     pub some_text: String,
 
-    #[settings(data = true, value = "Private very private")]
+    // #[settings(data = true, value = "Private very private")]
     pub private_text: String,
 
     pub location: InnerSettings,

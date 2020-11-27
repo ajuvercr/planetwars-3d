@@ -149,9 +149,7 @@ pub struct BatchRenderableHandle {
 impl BatchRenderableHandle {
     pub fn place_holder() -> Self {
         let (tx, _) = mpsc::channel();
-        Self {
-            inner: tx,
-        }
+        Self { inner: tx }
     }
     pub fn push(&self) -> Option<UniformsHandle> {
         let (tx, rx) = mpsc::channel();

@@ -15,8 +15,7 @@ use wasm_bindgen::JsValue;
 use serde_json;
 use web_sys::WebGlRenderingContext as GL;
 
-// #[derive(Debug, Clone, Settings, Serialize, Deserialize)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Settings, Serialize, Deserialize)]
 pub struct Planets {
     planets: Vec<Planet>,
 }

@@ -1,10 +1,10 @@
-use crate::{SettingsInst, models::gen_cube_faces};
 use crate::models::gen_sphere_faces;
 use crate::universe::Planets;
 use crate::universe::Universe;
 use crate::util;
 use crate::webgl::renderer::BatchRenderable;
 use crate::webgl::renderer::BatchRenderableHandle;
+use crate::{models::gen_cube_faces, SettingsInst};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -122,6 +122,8 @@ impl WebGl {
         {
             use pw_settings::SettingsTrait;
             let settings = SettingsInst::new_settings();
+            console_log!("{:?}", SettingsInst::default_settings(None));
+
             console_log!("Settings {:?}", settings);
             // let settings = SettingsInst::default_settings
         }

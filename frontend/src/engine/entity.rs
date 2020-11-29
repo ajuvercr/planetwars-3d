@@ -3,7 +3,7 @@ use pw_derive::Settings;
 use serde::{Deserialize, Serialize};
 
 // was settings
-#[derive(Debug, Clone, Serialize, Deserialize, AddGetterVal, AddSetter)]
+#[derive(Debug, Clone, Serialize, Deserialize, AddGetterVal, AddSetter, Settings)]
 pub struct Entity {
     #[get_val]
     #[set]
@@ -95,7 +95,7 @@ mod vec3 {
     use serde::{Deserialize, Serialize};
 
     // was settings
-    #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+    #[derive(Serialize, Deserialize, Debug, Clone, Copy, Settings)]
     pub struct Vec3 {
         pub x: f32,
         pub y: f32,

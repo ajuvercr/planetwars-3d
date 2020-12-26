@@ -3,19 +3,39 @@ use serde::{Deserialize, Serialize};
 
 use crate::engine::{Entity, Vec3};
 
-const MIN_SIZE: f32 = 0.0;
+const MIN_SIZE: f32 = -1000.0;
 const INC_SIZE: f32 = 0.1;
-const MAX_SIZE: f32 = 10.0;
+const MAX_SIZE: f32 = 1000.0;
 
 #[derive(Debug, Serialize, Deserialize, Settings, Clone)]
 pub struct Planet {
     pub name: String,
     #[settings(
-        position = [x = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], y = [inc = INC_SIZE,min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], z = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], ty = [Vec3]],
-        speed = [x = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], y = [inc = INC_SIZE,min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], z = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], ty = [Vec3]],
-        rotation = [x = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], y = [inc = INC_SIZE,min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], z = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], ty = [Vec3]],
-        ang_speed = [x = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], y = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], z = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], ty = [Vec3]],
-        scale = [x = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], y = [inc = INC_SIZE,min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], z = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]], ty = [Vec3]]
+        position = [
+            x = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]],
+            y = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]],
+            z = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]],
+            ty = [Vec3]],
+        speed = [
+            x = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]],
+            y = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]],
+            z = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]],
+            ty = [Vec3]],
+        rotation = [
+            x = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]],
+            y = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]],
+            z = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]],
+            ty = [Vec3]],
+        ang_speed = [
+            x = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]],
+            y = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]],
+            z = [inc = INC_SIZE, min = MIN_SIZE, max = MAX_SIZE, ty=[f32]],
+            ty = [Vec3]],
+        scale = [
+            x = [inc = INC_SIZE, min = 0.0,      max = MAX_SIZE, ty=[f32]],
+            y = [inc = INC_SIZE, min = 0.0,      max = MAX_SIZE, ty=[f32]],
+            z = [inc = INC_SIZE, min = 0.0,      max = MAX_SIZE, ty=[f32]],
+            ty = [Vec3]]
     )]
     pub location: Entity,
     pub disabled: bool,

@@ -44,12 +44,13 @@ pub struct Field {
 
 #[derive(Serialize, Debug)]
 pub struct Settings {
+    class: String,
     fields: Vec<Field>,
 }
 
 impl Settings {
-    pub fn new() -> Self {
-        Settings { fields: Vec::new() }
+    pub fn new<S1: Into<String>>(class: S1) -> Self {
+        Settings { fields: Vec::new(), class: class.into() }
     }
 
     pub fn add_field<S1: Into<String>, S2: Into<String>>(

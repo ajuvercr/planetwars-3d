@@ -29,6 +29,25 @@ fn to_cammel_case(orig: &str) -> String {
     }).collect()
 }
 
+fn from_cammel_case(orig: &str) -> String {
+    let chars = orig.chars();
+    let mut start = true;
+    chars.flat_map(|c| {
+        if c.is_uppercase() {
+            if start {
+                start = false;
+                vec![c.to_lowercase().next().unwrap()]
+            } else {
+                start = false;
+                vec!['_', c.to_lowercase().next().unwrap()]
+            }
+        } else {
+            start = false;
+            vec![c]
+        }
+    }).collect()
+}
+
 fn parse_attrs(attrs: &Vec<syn::Attribute>) -> syn::Result<HashMap<syn::Ident, MAttr>> {
     attrs
         .iter()
@@ -91,7 +110,7 @@ impl AliasGenerator {
     }
 }
 
-const IGNORE_KEYS: [&'static str;2] = ["name", "ty"];
+const IGNORE_KEYS: [&'static str;3] = ["name", "ty", "class"];
 fn gen_config_default_fields(alias_generator: &mut AliasGenerator, map: &HashMap<syn::Ident, MAttr>) -> syn::parse::Result<TokenStream2> {
     let mut out = Vec::new();
 
@@ -175,6 +194,7 @@ pub fn settings_derive(input: TokenStream) -> TokenStream {
             .get(&syn::Ident::new("name", Span::call_site())).map(|x| x.clone().lit())
             .unwrap_or(quote! { #id });
 
+
         config_fields.push(quote! {
             pub #ident: <#ty as ::pw_settings::FieldTrait>::Config,
         });
@@ -224,6 +244,14 @@ pub fn settings_derive(input: TokenStream) -> TokenStream {
 
     let type_ident = syn::Ident::new(&format!("{}Config", struct_name), Span::call_site());
 
+
+    let str_struct_name = from_cammel_case(&struct_name.to_string());
+
+    let class = attrs
+        .get(&syn::Ident::new("class", Span::call_site())).map(|x| x.clone().lit())
+        .unwrap_or(quote! { #str_struct_name });
+
+
     let inner = quote! {
         #[derive(Clone)]
         pub struct #type_ident {
@@ -250,7 +278,7 @@ pub fn settings_derive(input: TokenStream) -> TokenStream {
 
             fn to_settings_with(&self, config: &Self::Config) -> ::pw_settings::Settings {
                 use ::pw_settings::FieldTrait;
-                let mut settings = ::pw_settings::Settings::new();
+                let mut settings = ::pw_settings::Settings::new(#class);
 
                 #into_stream
 

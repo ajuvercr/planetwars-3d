@@ -168,15 +168,15 @@ function set_settings(settings) {
     const broadcast = v => {
         if (stop_wrapper.inner) return;
         console.log(v);
-        // for(cb of handlers) {
-        //     cb(v);
-        // }
+        for(cb of handlers) {
+            cb(v);
+        }
     };
 
     const settingsDiv = document.getElementById("settings");
     settingsDiv.innerHTML = "";
 
-    const div = genSettings("", settings, broadcast)[0];
+    const [div, _] = genSettings("", settings, broadcast);
 
     stop_wrapper.inner = false;
 

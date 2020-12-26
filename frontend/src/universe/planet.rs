@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::engine::{Entity, Vec3};
 
-const MIN_SIZE: f32 = 10.0;
-const INC_SIZE: f32 = 10.0;
+const MIN_SIZE: f32 = 0.0;
+const INC_SIZE: f32 = 0.1;
 const MAX_SIZE: f32 = 10.0;
 
 #[derive(Debug, Serialize, Deserialize, Settings, Clone)]

@@ -129,7 +129,7 @@ impl WebGl {
                 .map_err(|_| "Serde Failed")
                 .unwrap();
             println!("js value {:?}", js_value);
-            // unsafe { set_settings(js_value) };
+            unsafe { set_settings(js_value) };
         }
 
         let shader_factory = {

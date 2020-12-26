@@ -148,7 +148,11 @@ async function doInit() {
     }
     window.requestAnimationFrame(render);
 
-    addSettingsChangeListener(debounce(v => webGL.handle_client_update(v)));
+    addSettingsChangeListener(debounce(v => {
+        console.log("Sending to rust")
+        console.log(v)
+        webGL.handle_client_update(v)
+    }));
 }
 
 doInit();

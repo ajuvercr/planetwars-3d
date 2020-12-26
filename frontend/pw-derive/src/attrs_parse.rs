@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use syn::parse::*;
 use syn::{Ident, Token};
-use quote::{quote};
+use quote::quote;
 
 use proc_macro2::TokenStream as TokenStream2;
 use syn::punctuated::Punctuated;
 
 enum MAttrPriv {
-    Lit(Ident, syn::Lit),
+    Lit(Ident, TokenStream2),
     Stream(Ident, TokenStream2),
 }
 
@@ -21,7 +21,14 @@ impl Parse for MAttrPriv {
             syn::bracketed!(content in input);
             Ok(MAttrPriv::Stream(ident, content.parse()?))
         } else {
-            let value = input.parse()?;
+            let value = match input.parse::<Option<Ident>>()? {
+                Some(ident) => quote!{#ident},
+                None => {
+                    let thing: syn::Lit = input.parse()?;
+                    quote!{#thing}
+                },
+            };
+
             Ok(MAttrPriv::Lit(ident, value))
         }
     }
@@ -29,19 +36,19 @@ impl Parse for MAttrPriv {
 
 #[derive(Clone)]
 pub enum MAttr {
-    Lit(syn::Lit),
+    Lit(TokenStream2),
     Stream(TokenStream2),
 }
 
 impl MAttr {
     pub fn token_stream(self) -> TokenStream2 {
         match self {
-            MAttr::Lit(x) => quote!({#x}),
+            MAttr::Lit(x) => x,
             MAttr::Stream(s) => s,
         }
     }
 
-    pub fn lit(self) -> syn::Lit {
+    pub fn lit(self) -> TokenStream2 {
         match self {
             MAttr::Lit(x) => x,
             MAttr::Stream(_) => panic!("Expected literal, found bracketed"),

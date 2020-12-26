@@ -144,13 +144,32 @@ pub trait FieldTrait: Sized {
     }
 }
 
-impl FieldTrait for f32 {
-    type Config = FieldConfig<f32>;
+#[derive(Clone)]
+pub struct FloatFieldConfig {
+    pub value: Option<f32>,
+    pub min: Option<f32>,
+    pub max: Option<f32>,
+    pub inc: Option<f32>,
+}
 
-    fn default_self(settings: &FieldConfig<Self>) -> Self {
+impl Default for FloatFieldConfig {
+    fn default() -> Self {
+        Self {
+            value: None,
+            min: None,
+            max: None,
+            inc: None,
+        }
+    }
+}
+
+impl FieldTrait for f32 {
+    type Config = FloatFieldConfig;
+
+    fn default_self(settings: &Self::Config) -> Self {
         settings.value.clone().unwrap_or(FLOAT_DEFAULT)
     }
-    fn to_field(&self, config: &FieldConfig<Self>) -> FieldType {
+    fn to_field(&self, config: &Self::Config) -> FieldType {
         FieldType::Slider {
             value: *self,
             min: config.min.unwrap_or(FLOAT_MIN),

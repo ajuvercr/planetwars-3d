@@ -1,10 +1,10 @@
+use crate::models::gen_cube_faces;
 use crate::models::gen_sphere_faces;
 use crate::universe::Planets;
 use crate::universe::Universe;
 use crate::util;
 use crate::webgl::renderer::BatchRenderable;
 use crate::webgl::renderer::BatchRenderableHandle;
-use crate::{models::gen_cube_faces, SettingsInst};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -120,23 +120,17 @@ impl WebGl {
         gl.enable(GL::DEPTH_TEST);
 
         {
-            use pw_settings::SettingsTrait;
-            let settings = SettingsInst::new_settings();
-            console_log!("{:?}", SettingsInst::default_settings(None));
+            let planets = self
+                .universe
+                .init(gl, &mut self.renderer, "universe.json")
+                .await?;
 
-            console_log!("Settings {:?}", settings);
-            // let settings = SettingsInst::default_settings
+            let js_value = JsValue::from_serde(&planets.to_settings(None))
+                .map_err(|_| "Serde Failed")
+                .unwrap();
+            println!("js value {:?}", js_value);
+            // unsafe { set_settings(js_value) };
         }
-
-        // {
-        //     let planets = self.universe.init(gl, &mut self.renderer, "universe.json").await?;
-
-        //     let js_value = JsValue::from_serde(&planets.to_settings())
-        //         .map_err(|_| "Serde Failed")
-        //         .unwrap();
-        //     println!("js value {:?}", js_value);
-        //     unsafe { set_settings(js_value) };
-        // }
 
         let shader_factory = {
             let vert_source = util::fetch("shaders/basic.vert").await?;
@@ -236,7 +230,9 @@ impl WebGl {
     pub fn handle_client_update(&mut self, val: &JsValue) {
         match val.into_serde::<Planets>() {
             Ok(planets) => match self.universe.set_planets(&planets) {
-                Ok(_) => {}
+                Ok(_) => {
+                    console_log!("Got planets {:?}", planets);
+                }
                 Err(e) => {
                     console_log!("Woops something failed {:?}", e)
                 }

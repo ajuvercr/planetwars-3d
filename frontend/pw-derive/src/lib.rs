@@ -100,7 +100,7 @@ fn gen_config_default_fields(alias_generator: &mut AliasGenerator, map: &HashMap
         match value {
             MAttr::Lit(ref lit) => {
                 out.push(quote!{
-                    #key: #lit.into(),
+                    #key: (#lit).into(),
                 });
             },
             MAttr::Stream(ref stream) => {
@@ -131,7 +131,6 @@ fn gen_config_default_fields(alias_generator: &mut AliasGenerator, map: &HashMap
 
     Ok(out.into_iter().collect())
 }
-
 
 #[proc_macro_derive(Settings, attributes(settings))]
 pub fn settings_derive(input: TokenStream) -> TokenStream {
@@ -174,7 +173,6 @@ pub fn settings_derive(input: TokenStream) -> TokenStream {
         let id = ident.to_string();
         let name = attrs
             .get(&syn::Ident::new("name", Span::call_site())).map(|x| x.clone().lit())
-            .map(|x| quote! { #x })
             .unwrap_or(quote! { #id });
 
         config_fields.push(quote! {

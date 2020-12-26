@@ -167,9 +167,10 @@ function set_settings(settings) {
     const stop_wrapper = {"inner": true};
     const broadcast = v => {
         if (stop_wrapper.inner) return;
-        for(cb of handlers) {
-            cb(v);
-        }
+        console.log(v);
+        // for(cb of handlers) {
+        //     cb(v);
+        // }
     };
 
     const settingsDiv = document.getElementById("settings");

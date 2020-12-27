@@ -6,11 +6,14 @@ use crate::uniform::Uniform3f;
 use crate::webgl::renderer::{BatchRenderable, BatchRenderableHandle};
 
 use crate::util::*;
+use crate::uniform::UniformsHandle;
 use crate::{shader::Shader, webgl::renderer::Renderer};
 pub use planet::Planet;
 use pw_derive::Settings;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
+
+use cgmath::Vector3;
 
 use serde_json;
 use web_sys::WebGlRenderingContext as GL;
@@ -48,6 +51,8 @@ impl Planets {
 }
 
 pub struct Universe {
+    last_clicked: Vec<usize>,
+    uniforms: Vec<UniformsHandle>,
     objects: Vec<Object>,
     planet_factory: BatchRenderableHandle,
 }
@@ -59,8 +64,29 @@ impl Universe {
     /// Call and wait for `Universe::init` before use!
     pub fn place_holder() -> Self {
         Self {
+            last_clicked: Vec::new(),
+            uniforms: Vec::new(),
             objects: Vec::new(),
             planet_factory: BatchRenderableHandle::place_holder(),
+        }
+    }
+
+    pub fn handle_click(&mut self, origin: Vector3<f32>, direction: Vector3<f32>) {
+        for i in self.last_clicked.drain(..) {
+            self.uniforms[i].single(
+                "u_color",
+                Uniform3f::new(1.0, 0.0, 1.0),
+            );
+        }
+
+        for (i, (o, u)) in self.objects.iter().zip(&self.uniforms).enumerate() {
+            if o.click_hit(origin, direction) {
+                self.last_clicked.push(i);
+                u.single(
+                    "u_color",
+                    Uniform3f::new(1.0, 1.0, 1.0),
+                );
+            }
         }
     }
 
@@ -105,8 +131,13 @@ impl Universe {
                 "u_reverseLightDirection",
                 Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
             );
-            self.objects
-                .push(Object::new(handle, planet.location.clone()));
+            handle.single(
+                "u_color",
+                Uniform3f::new(1.0, 0.0, 1.0),
+            );
+            let obj = Object::new(handle, planet.location.clone());
+            self.uniforms.push(obj.uniform_handle());
+            self.objects.push(obj);
         }
 
         // Set new planet's entities

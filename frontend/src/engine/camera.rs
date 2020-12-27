@@ -2,9 +2,9 @@ use super::{Entity, Vec3};
 use crate::set_info;
 use cgmath::Vector4;
 use cgmath::{perspective, prelude::SquareMatrix, Deg, Matrix4, Vector3};
+use cgmath::InnerSpace;
 use std::sync::mpsc;
 use wasm_bindgen::prelude::*;
-
 pub enum CameraEvent {
     AddAngle(Vector3<f32>),
     ResetAngle(Vector3<f32>),
@@ -95,6 +95,19 @@ impl Camera {
             projection_matrix,
         }
     }
+
+
+    pub fn handle_click(&self, x: f32, y: f32) -> (Vector3<f32>, Vector3<f32>) {
+        let mat = self.world_view_projection_matrix.invert().unwrap();
+        let coord_near = Vector4::new(x * self.near, y * self.near, -self.near, self.near);
+        let coord_far = Vector4::new(x * self.far, y * self.far, self.far, self.far);
+
+        let near = (mat * coord_near).truncate();
+        let far = (mat * coord_far).truncate();
+
+        (near, (far - near).normalize())
+    }
+
 
     fn reset_projection(&mut self) {
         // self.projection_matrix = frustum(-0.5 * self.aspect, 0.5 * self.aspect, -0.5, 0.5, self.near, self.far);

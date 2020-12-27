@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use web_sys::WebGlRenderingContext as GL;
 
 use super::{Float, Index, Mesh, Vector};
+use cgmath::Vector3;
 
 #[inline]
 fn normalize([x, y, z]: Vector<Float>) -> Vector<Float> {
@@ -181,6 +182,10 @@ impl ObjectFactory {
             "u_reverseLightDirection",
             Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
         );
+        uniforms.single(
+            "u_color",
+            Uniform3f::new(1.0, 1.0, 1.0),
+        );
         renderer.add_renderable(renderable, 0);
 
         Some(Object { uniforms, entity })
@@ -248,6 +253,14 @@ impl Object {
 
     pub fn set_entity(&mut self, entity: Entity) {
         self.entity = entity;
+    }
+
+    pub fn uniform_handle(&self) -> UniformsHandle {
+        self.uniforms.clone()
+    }
+
+    pub fn click_hit(&self, origin: Vector3<f32>, direction: Vector3<f32>) -> bool {
+        self.entity.is_hit(origin, direction)
     }
 }
 

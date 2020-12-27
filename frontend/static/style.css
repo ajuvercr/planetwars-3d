@@ -30,6 +30,7 @@ body, html {
 }
 
 .info {
+    pointer-events: auto;
     position: relative;
 
     padding: 5px;

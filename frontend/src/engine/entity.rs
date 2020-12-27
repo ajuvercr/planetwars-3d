@@ -1,4 +1,4 @@
-use cgmath::{Angle, Deg, Euler, Matrix4, Vector3};
+use cgmath::{Angle, Deg, Euler, Matrix4, Vector3, InnerSpace};
 use pw_derive::Settings;
 use serde::{Deserialize, Serialize};
 
@@ -36,6 +36,22 @@ impl Default for Entity {
 }
 
 impl Entity {
+    pub fn is_hit(&self, origin: Vector3<f32>, direction: Vector3<f32>) -> bool {
+        let pos: Vector3<f32> = self.position.into();
+        let scale_max = self.scale.max();
+
+        let o_min_c = origin - pos;
+        let big_d = cgmath::dot(direction, o_min_c).powi(2) - (o_min_c.magnitude2() - scale_max.powi(2));
+        if big_d < 0.0 {
+            return false;
+        }
+
+        let big_d_sqrt = big_d.sqrt();
+        let distance = - cgmath::dot(direction, o_min_c) + big_d_sqrt;
+
+        distance > 0.0
+    }
+
     pub fn with_position(mut self, position: Vector3<f32>) -> Self {
         self.position = position.into();
         self
@@ -116,6 +132,10 @@ mod vec3 {
         #[inline]
         pub fn new(x: f32, y: f32, z: f32) -> Self {
             Self { x, y, z }
+        }
+
+        pub fn max(&self) -> f32 {
+            self.x.max(self.y.max(self.z))
         }
     }
 

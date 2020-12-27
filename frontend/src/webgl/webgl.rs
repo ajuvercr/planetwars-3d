@@ -47,6 +47,10 @@ fn create_object(r: &BatchRenderableHandle, entity: Entity) -> Option<Object> {
         "u_reverseLightDirection",
         Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
     );
+    handle.single(
+        "u_color",
+        Uniform3f::new(1.0, 1.0, 1.0),
+    );
     Some(Object::new(handle, entity))
 }
 
@@ -179,8 +183,8 @@ impl WebGl {
             handle
         };
 
-        for i in -10..10 {
-            for j in 0..7 {
+        for i in -2..2 {
+            for j in 0..3 {
                 let mut sphere_entity = sphere_entity.clone();
                 sphere_entity
                     .set_position(Vector3::new((i * 50) as f32, (j * 100) as f32, -500.0).into());
@@ -265,5 +269,10 @@ impl WebGl {
     pub fn render_gl(&mut self) -> Result<(), JsValue> {
         self.renderer.render(&self.gl);
         Ok(())
+    }
+
+    pub fn handle_click(&mut self, x: f32, y: f32) {
+        let (origin, direction) = self.camera.handle_click(x, y);
+        self.universe.handle_click(origin, direction);
     }
 }

@@ -71,6 +71,15 @@ async function doInit() {
 
     let webGL = await new WebGl("canvas").init_renderer();
 
+    console.log(canvas);
+    canvas.addEventListener("click", e => {
+        console.log("CLICK");
+        const loc_x = e.clientX  / e.target.clientWidth  * 2 - 1;
+        const loc_y = e.clientY  / e.target.clientHeight  * -2 + 1;
+        console.log(loc_x, loc_y);
+        webGL.handle_click(loc_x, loc_y);
+    }, false);
+
     window.addEventListener('resize', () => webGL.resize());
 
     /** @type {CameraHandle} */

@@ -20,7 +20,7 @@ function _genNamedDiv(name, ...classes) {
 }
 
 function genField(name, value, cb = (e) => {}, readOnly=false) {
-    const div = _genNamedDiv(name);
+    const div = _genNamedDiv(name, "text_field");
 
     const valueField = document.createElement("input");
     valueField.classList.add("input");
@@ -39,7 +39,7 @@ function genField(name, value, cb = (e) => {}, readOnly=false) {
 }
 
 function genSlider(name, content, cb = (e) => {}, readOnly=false) {
-    const div = _genNamedDiv(name);
+    const div = _genNamedDiv(name, "slider");
 
     const valueField = document.createElement("input");
     valueField.classList.add("input");
@@ -61,7 +61,7 @@ function genSlider(name, content, cb = (e) => {}, readOnly=false) {
 }
 
 function genArray(name, content, parent_cb = (e) => {}, readOnly=false) {
-    const div = _genNamedDiv(name);
+    const div = _genNamedDiv(name, "array");
 
     const vecDiv =  document.createElement("div");
     const values = [];
@@ -96,7 +96,7 @@ function genArray(name, content, parent_cb = (e) => {}, readOnly=false) {
 }
 
 function genCheck(name, value, cb = (e) => {}, readOnly=false) {
-    const div = _genNamedDiv(name);
+    const div = _genNamedDiv(name, "check");
 
     const valueField = document.createElement("input");
     valueField.classList.add("input");
@@ -141,7 +141,7 @@ function genSetting(field, setter, flush) {
 
 function genSettings(name, settings, parent_cb) {
     console.log(settings);
-    const wrapper = _genNamedDiv(name, "column");
+    const wrapper = _genNamedDiv(name, "settings", settings.class);
     const div = document.createElement("div");
     div.classList.add("input");
     wrapper.appendChild(div);

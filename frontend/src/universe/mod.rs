@@ -75,7 +75,7 @@ impl Universe {
         for i in self.last_clicked.drain(..) {
             self.uniforms[i].single(
                 "u_color",
-                Uniform3f::new(1.0, 0.0, 1.0),
+                Uniform3f::new(1.0, 1.0, 1.0),
             );
         }
 
@@ -84,7 +84,7 @@ impl Universe {
                 self.last_clicked.push(i);
                 u.single(
                     "u_color",
-                    Uniform3f::new(1.0, 1.0, 1.0),
+                    Uniform3f::new(1.0, 0.0, 1.0),
                 );
             }
         }
@@ -133,7 +133,7 @@ impl Universe {
             );
             handle.single(
                 "u_color",
-                Uniform3f::new(1.0, 0.0, 1.0),
+                Uniform3f::new(1.0, 1.0, 1.0),
             );
             let obj = Object::new(handle, planet.location.clone());
             self.uniforms.push(obj.uniform_handle());

@@ -22,7 +22,7 @@ body, html {
     flex-grow: 1;
     /* padding: 40px; */
     background-color: #333;
-    overflow: hidden;
+    /* overflow: hidden; */
 }
 
 .canvas {
@@ -39,6 +39,12 @@ body, html {
 
 #settings {
     width: 400px;
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+.planets > .input > .array > p {
+    display: none;
 }
 
 .left {
@@ -49,46 +55,47 @@ body, html {
     float: right;
 }
 
-.field {
+.vec3 > .input {
     display: flex;
+    justify-content: space-evenly;
+}
+
+.vec3 > .input > .slider {
+    width: 100px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.vec3 > .input > .slider > input {
+    width: 70px;
+}
+
+.settings > p {
+    font-weight: bold;
+}
+
+.text_field, .check {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+}
+
+.planet + .planet {
+    border-top: solid;
+}
+
+.planet {
+    padding: 5px;
+}
+
+.planet > .input > .entity > p {
+    display: none;
+}
+
+.text_field {
+    justify-content: space-between;
     width: 100%;
-    justify-content: space-between;
-    align-items: center;
 }
-
-.field > .input {
-    width: 70%;
-}
-
-.field input {
-    height: 20px;
-}
-
-.field .column {
-    flex-direction: column;
-}
-
-.vec3 {
-    display: flex;
-    justify-content: space-between;
-}
-
-.vec3 > .part > input {
-    width: 50px;
-}
-
-.vec3 > .x::before {
-    content: 'x: ';
-}
-
-.vec3 > .y::before {
-    content: 'y: ';
-}
-
-.vec3 > .z::before {
-    content: 'z: ';
-}
-
 
 input[type=range] {
     -webkit-appearance: none;

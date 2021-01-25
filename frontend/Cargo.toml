@@ -21,6 +21,8 @@ pw-derive = { version = "0.1", path = "./pw-derive/" }
 add_getters_setters = "1.1.2"
 tobj = "2.0.2"
 
+collada = "0.13.0"
+
 [dependencies.web-sys]
 version = "0.3"
 features = [

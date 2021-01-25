@@ -2,8 +2,6 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
 
-const SHIP_BYTES: &'static [u8] = include_bytes!("../res/ship.obj");
-
 pub async fn fetch(url: &str) -> Result<String, JsValue> {
     use web_sys::{Request, RequestInit, RequestMode, Response};
 
@@ -28,43 +26,6 @@ pub async fn fetch(url: &str) -> Result<String, JsValue> {
     let text = JsFuture::from(resp.text()?).await?.as_string().unwrap();
 
     Ok(text)
-}
-
-pub async fn load_ship() -> Option<(Vec<[f32; 3]>, Vec<[usize; 3]>)> {
-    use std::io::Cursor;
-
-    let mut verts = Vec::new();
-    let mut faces = Vec::new();
-
-    let load = tobj::load_obj_buf(&mut Cursor::new(SHIP_BYTES), true, |p| {
-        console_log!("Unexpected material load: {}", p.display());
-        unreachable!()
-    });
-
-    let mesh = match load {
-        Ok((mut model, _material)) => model.pop()?.mesh,
-        Err(e) => {
-            console_log!("Loading failed {:?}", e);
-            return None;
-        }
-    };
-
-    let positions = &mesh.positions;
-    let indices = &mesh.indices;
-
-    for i in (0..positions.len()).step_by(3) {
-        verts.push([positions[i], positions[i + 1], positions[i + 2]]);
-    }
-
-    for i in (0..indices.len()).step_by(3) {
-        faces.push([
-            indices[i] as usize,
-            indices[i + 1] as usize,
-            indices[i + 2] as usize,
-        ]);
-    }
-
-    Some((verts, faces))
 }
 
 pub struct FpsCounter {

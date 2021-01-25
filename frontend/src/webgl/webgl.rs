@@ -1,5 +1,4 @@
-use crate::models::gen_cube_faces;
-use crate::models::gen_sphere_faces;
+use crate::models;
 use crate::universe::Universe;
 use crate::util;
 use crate::webgl::renderer::BatchRenderable;
@@ -129,17 +128,17 @@ impl WebGl {
         };
 
         let sphere_factory = {
-            let (verts, faces) = gen_sphere_faces(3);
+            let (verts, faces) = models::gen_sphere_faces(3);
             ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone())
         };
 
         let cube_factory = {
-            let (verts, faces) = gen_cube_faces();
+            let (verts, faces) = models::gen_cube_faces();
             ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
         };
 
         let ship_factory = {
-            let (verts, faces) = util::load_ship().await.ok_or("Ship loading failed!")?;
+            let (verts, faces) = models::load_rocket().await.ok_or("Ship loading failed!")?;
             ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone())
         };
 
@@ -180,7 +179,7 @@ impl WebGl {
         }
 
         let sphere_factory = {
-            let (verts, faces) = gen_sphere_faces(1);
+            let (verts, faces) = models::gen_sphere_faces(1);
             ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
         };
 

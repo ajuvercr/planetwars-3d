@@ -244,6 +244,7 @@ impl Object {
         self.uniforms
             .single("u_world", UniformMat4::new_mat4(self.entity.world_matrix()));
     }
+
     pub fn enable(&self) {
         self.uniforms.enable();
     }

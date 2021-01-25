@@ -4,6 +4,8 @@ use crate::delaunay::Delaunay;
 use cgmath::Vector3;
 mod icosahedron;
 pub use icosahedron::*;
+mod mesh;
+pub use mesh::*;
 
 pub fn gen_generalized_spiral(n: f32, c: f32) -> Vec<f32> {
     let mut out = Vec::new();

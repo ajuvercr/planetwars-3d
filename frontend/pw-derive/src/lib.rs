@@ -287,7 +287,7 @@ pub fn settings_derive(input: TokenStream) -> TokenStream {
         }
     };
 
-    println!("{}", inner);
+    // println!("{}", inner);
 
     TokenStream::from(inner)
 }

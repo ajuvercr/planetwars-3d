@@ -1,4 +1,4 @@
-#![feature(pattern)]
+#![feature(pattern, destructuring_assignment)]
 #![allow(unused_unsafe)]
 
 #[macro_export]

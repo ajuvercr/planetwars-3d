@@ -1,5 +1,4 @@
-use crate::models;
-use crate::universe::Universe;
+use crate::{engine::physics::{EntityPhysics, IdPhysics, Physics, PhysicsBuilder}, models};
 use crate::util;
 use crate::webgl::renderer::BatchRenderable;
 use crate::webgl::renderer::BatchRenderableHandle;
@@ -13,7 +12,7 @@ use crate::uniform::Uniform3f;
 use crate::{
     engine::{Camera, CameraHandle, Entity},
 };
-use cgmath::Vector3;
+use cgmath::{Matrix4, Vector3};
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
 
@@ -23,7 +22,9 @@ pub struct WebGl {
     gl: GL,
 
     objects: Vec<Object>,
-    universe: Universe,
+
+    es: Option<Box<dyn Physics<Matrix4<f32>, ()>>>,
+    // universe: Universe,
 
     camera: Camera,
     camera_handle: CameraHandle,
@@ -49,6 +50,49 @@ fn create_object(r: &BatchRenderableHandle, entity: Entity) -> Option<Object> {
     );
     Some(Object::new(handle, entity))
 }
+
+fn test_es(gl: &GL, sphere_factory: &ObjectFactory, renderer: &mut Renderer) -> Option<Box<dyn Physics<Matrix4<f32>, ()>>> {
+    let mut builder = PhysicsBuilder::new(IdPhysics);
+
+    builder = {
+        let entity = Entity::default()
+            .with_position(Vector3::new(-500.0, 0.0, -500.0))
+            .with_ang_speed(Vector3::new(0.0, 4.0, 0.0));
+
+        let mut builder = builder.enter(
+            EntityPhysics::new(entity, None)
+        );
+
+        let s1 = sphere_factory.create_renderable(gl)?;
+        let e1 = Entity::default()
+            .with_position(Vector3::new(0.0, 100.0, 0.0))
+            .with_hom_scale(50.0);
+        builder = builder.enter(EntityPhysics::new(e1, s1.handle())).close();
+        renderer.add_renderable(s1, 4);
+
+
+        let s2 = sphere_factory.create_renderable(gl)?;
+        let e2 = Entity::default()
+            .with_position(Vector3::new(0.0, -100.0, 0.0))
+            .with_hom_scale(50.0);
+        builder = builder.enter(EntityPhysics::new(e2, s2.handle())).close();
+        renderer.add_renderable(s2, 4);
+
+
+        let s3 = sphere_factory.create_renderable(gl)?;
+        let e3 = Entity::default()
+            .with_position(Vector3::new(100.0, 0.0, 0.0))
+            .with_hom_scale(50.0);
+        builder = builder.enter(EntityPhysics::new(e3, s3.handle())).close();
+        renderer.add_renderable(s3, 4);
+
+        builder.close()
+    };
+
+
+    Some(Box::new(builder.finish()))
+}
+
 
 #[wasm_bindgen]
 impl WebGl {
@@ -77,8 +121,9 @@ impl WebGl {
             canvas,
             gl,
 
+            es: None,
             objects: Vec::new(),
-            universe: Universe::place_holder(),
+            // universe: Universe::place_holder(),
 
             camera,
             camera_handle,
@@ -118,7 +163,7 @@ impl WebGl {
         // Enable the depth buffer
         gl.enable(GL::DEPTH_TEST);
 
-        self.universe.init(gl, &mut self.renderer, "universe.json").await?;
+        // self.universe.init(gl, &mut self.renderer, "universe.json").await?;
 
 
         let shader_factory = {
@@ -132,6 +177,8 @@ impl WebGl {
             ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone())
         };
 
+        self.es = test_es(gl, &sphere_factory, &mut self.renderer);
+
         let cube_factory = {
             let (verts, faces) = models::gen_cube_faces();
             ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
@@ -141,6 +188,8 @@ impl WebGl {
             let (verts, faces) = models::load_rocket().await.ok_or("Ship loading failed!")?;
             ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone())
         };
+
+
 
         // Setup sphere
         let sphere_entity = Entity::default()
@@ -227,8 +276,13 @@ impl WebGl {
         let gl = &self.gl;
 
         let camera = &self.camera;
+        self.renderer.world_view_projection_matrix = camera.world_view_projection_matrix();
 
-        self.universe.update(dt, camera);
+        // self.universe.update(dt, camera);
+        if let Some(es) = self.es.as_mut() {
+            es.update(&Matrix4::from_scale(1.0), dt as f32, &mut self.renderer);
+        }
+
         self.objects
             .iter_mut()
             .for_each(|object| object.update(dt as f32, camera));
@@ -244,8 +298,8 @@ impl WebGl {
         Ok(())
     }
 
-    pub fn handle_click(&mut self, x: f32, y: f32) {
-        let (origin, direction) = self.camera.handle_click(x, y);
-        self.universe.handle_click(origin, direction);
+    pub fn handle_click(&mut self, _x: f32, _y: f32) {
+        // let (origin, direction) = self.camera.handle_click(x, y);
+        // self.universe.handle_click(origin, direction);
     }
 }

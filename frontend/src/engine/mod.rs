@@ -5,6 +5,8 @@ pub use camera::*;
 mod entity;
 pub use entity::*;
 
+pub mod physics;
+
 pub mod objects;
 
 pub use objects::{Object, ObjectConfig, ObjectFactory};

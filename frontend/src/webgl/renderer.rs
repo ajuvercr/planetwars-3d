@@ -8,6 +8,7 @@ use std::{
     collections::{BTreeSet, HashMap},
     sync::mpsc,
 };
+use cgmath::{Matrix4, Zero};
 use web_sys::WebGlRenderingContext as GL;
 
 static SHOW_UNIFORMS: bool = false;
@@ -267,6 +268,8 @@ impl<R: BatchRenderableTrait> Renderable for BatchRenderable<R> {
 pub struct Renderer {
     layers: HashMap<usize, Vec<Box<dyn Renderable>>>,
     sorted_layers: BTreeSet<usize>,
+
+    pub world_view_projection_matrix: Matrix4<f32>,
 }
 
 impl Renderer {
@@ -275,6 +278,7 @@ impl Renderer {
         Self {
             layers: HashMap::new(),
             sorted_layers: BTreeSet::new(),
+            world_view_projection_matrix: Matrix4::zero(),
         }
     }
 

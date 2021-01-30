@@ -1,4 +1,4 @@
-use cgmath::{Angle, Deg, Euler, Matrix4, Vector3, InnerSpace};
+use cgmath::{Deg, Euler, Matrix4, Vector3, InnerSpace};
 use pw_derive::Settings;
 use serde::{Deserialize, Serialize};
 
@@ -62,7 +62,7 @@ impl Entity {
         self
     }
 
-    pub fn with_rotation<A: Angle>(mut self, rotation: Vector3<f32>) -> Self {
+    pub fn with_rotation(mut self, rotation: Vector3<f32>) -> Self {
         self.rotation = rotation.into();
         self
     }

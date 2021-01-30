@@ -1,14 +1,11 @@
-use crate::{engine::physics::{EntityPhysics, IdPhysics, Physics, PhysicsBuilder}, models};
+use crate::{engine::physics::{EntityPhysics, IdPhysics, Physics, PhysicsBuilder, TransformTree}, models::{self, RocketFactory}};
 use crate::util;
-use crate::webgl::renderer::BatchRenderable;
-use crate::webgl::renderer::BatchRenderableHandle;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::engine::{Object, ObjectConfig, ObjectFactory};
 
 use super::{renderer::Renderer, Shader};
-use crate::uniform::Uniform3f;
 use crate::{
     engine::{Camera, CameraHandle, Entity},
 };
@@ -23,7 +20,7 @@ pub struct WebGl {
 
     objects: Vec<Object>,
 
-    es: Option<Box<dyn Physics<Matrix4<f32>, ()>>>,
+    es: TransformTree<IdPhysics, Matrix4<f32>, Matrix4<f32>>,
     // universe: Universe,
 
     camera: Camera,
@@ -38,20 +35,7 @@ unsafe impl Send for WebGl {}
 
 unsafe impl Sync for WebGl {}
 
-fn create_object(r: &BatchRenderableHandle, entity: Entity) -> Option<Object> {
-    let handle = r.push()?;
-    handle.single(
-        "u_reverseLightDirection",
-        Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
-    );
-    handle.single(
-        "u_color",
-        Uniform3f::new(1.0, 1.0, 1.0),
-    );
-    Some(Object::new(handle, entity))
-}
-
-fn test_es(gl: &GL, sphere_factory: &ObjectFactory, renderer: &mut Renderer) -> Option<Box<dyn Physics<Matrix4<f32>, ()>>> {
+fn test_es(gl: &GL, sphere_factory: &ObjectFactory, renderer: &mut Renderer) -> Option<impl Physics<Matrix4<f32>, ()>> {
     let mut builder = PhysicsBuilder::new(IdPhysics);
 
     builder = {
@@ -90,7 +74,7 @@ fn test_es(gl: &GL, sphere_factory: &ObjectFactory, renderer: &mut Renderer) -> 
     };
 
 
-    Some(Box::new(builder.finish()))
+    Some(builder.finish())
 }
 
 
@@ -121,7 +105,7 @@ impl WebGl {
             canvas,
             gl,
 
-            es: None,
+            es: PhysicsBuilder::new(IdPhysics).finish(),
             objects: Vec::new(),
             // universe: Universe::place_holder(),
 
@@ -177,18 +161,19 @@ impl WebGl {
             ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone())
         };
 
-        self.es = test_es(gl, &sphere_factory, &mut self.renderer);
+        self.es.add_child(test_es(gl, &sphere_factory, &mut self.renderer).unwrap());
 
         let cube_factory = {
             let (verts, faces) = models::gen_cube_faces();
             ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
         };
 
-        let ship_factory = {
-            let (verts, faces) = models::load_rocket().await.ok_or("Ship loading failed!")?;
-            ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone())
+        let ship_factory: RocketFactory = {
+            let parts = models::load_rocket().await.ok_or("Ship loading failed!")?;
+            let parts = parts.into_iter()
+                .map(|(name, verts, faces)| (name, ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone()))).collect();
+            RocketFactory::new(parts).unwrap()
         };
-
 
 
         // Setup sphere
@@ -206,26 +191,30 @@ impl WebGl {
             );
         }
 
-        let ship_creation_handle = {
-            let ship_renderable = BatchRenderable::new(
-                ship_factory
-                    .create_renderable(gl)
-                    .ok_or("Failed to created renderable ship")?,
-            );
-            let handle = ship_renderable.handle();
-            self.renderer.add_renderable(ship_renderable, 0);
-            handle
-        };
+        self.es.add_child(
+            ship_factory.create(gl, &mut self.renderer).unwrap()
+        );
 
-        for i in -2..2 {
-            for j in 0..3 {
-                let mut sphere_entity = sphere_entity.clone();
-                sphere_entity
-                    .set_position(Vector3::new((i * 50) as f32, (j * 100) as f32, -500.0).into());
-                self.objects
-                    .push(create_object(&ship_creation_handle, sphere_entity).ok_or("bla")?);
-            }
-        }
+        // let ship_creation_handle = {
+        //     let ship_renderable = BatchRenderable::new(
+        //         ship_factory
+        //             .create_renderable(gl)
+        //             .ok_or("Failed to created renderable ship")?,
+        //     );
+        //     let handle = ship_renderable.handle();
+        //     self.renderer.add_renderable(ship_renderable, 0);
+        //     handle
+        // };
+
+        // for i in -2..2 {
+        //     for j in 0..3 {
+        //         let mut sphere_entity = sphere_entity.clone();
+        //         sphere_entity
+        //             .set_position(Vector3::new((i * 50) as f32, (j * 100) as f32, -500.0).into());
+        //         self.objects
+        //             .push(create_object(&ship_creation_handle, sphere_entity).ok_or("bla")?);
+        //     }
+        // }
 
         let sphere_factory = {
             let (verts, faces) = models::gen_sphere_faces(1);
@@ -279,9 +268,7 @@ impl WebGl {
         self.renderer.world_view_projection_matrix = camera.world_view_projection_matrix();
 
         // self.universe.update(dt, camera);
-        if let Some(es) = self.es.as_mut() {
-            es.update(&Matrix4::from_scale(1.0), dt as f32, &mut self.renderer);
-        }
+        self.es.update(&Matrix4::from_scale(1.0), dt as f32, &mut self.renderer);
 
         self.objects
             .iter_mut()

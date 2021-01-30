@@ -1,3 +1,8 @@
+use cgmath::{Matrix4, Vector3};
+
+use crate::{engine::{Entity, ObjectFactory, physics::{EntityPhysics, Physics, PhysicsBuilder}}, renderer::Renderer};
+use web_sys::WebGlRenderingContext as GL;
+
 const SHIP_BYTES: &'static [u8] = include_bytes!("../../res/ship.obj");
 
 pub async fn load_ship() -> Option<(Vec<[f32; 3]>, Vec<[usize; 3]>)> {
@@ -39,19 +44,19 @@ pub async fn load_ship() -> Option<(Vec<[f32; 3]>, Vec<[usize; 3]>)> {
 
 const ROCKET_DAE: &'static str = include_str!("../../res/rocket.dae");
 
-pub async fn load_rocket() -> Option<(Vec<[f32; 3]>, Vec<[usize; 3]>)> {
+pub async fn load_rocket() -> Option<Vec<(String, Vec<[f32; 3]>, Vec<[usize; 3]>)>> {
     let doc = collada::document::ColladaDocument::from_str(ROCKET_DAE).ok()?;
     let os = doc.get_obj_set()?.objects;
 
-    let mut verts = Vec::new();
-    let mut faces = Vec::new();
-
-    let mut offset = 0;
+    let mut out_objects = Vec::new();
 
     for obj in &os {
-        for collada::Vertex {x, y, z} in &obj.vertices {
-            verts.push([*x as f32, *y as f32, *z as f32]);
-        }
+        let name = obj.name.clone();
+
+        let verts = obj.vertices.iter()
+            .map(|collada::Vertex {x, y, z}| [*x as f32, *y as f32, *z as f32])
+            .collect();
+        let mut faces = Vec::new();
 
         for geo in &obj.geometry {
             for mesh in &geo.mesh {
@@ -61,13 +66,76 @@ pub async fn load_rocket() -> Option<(Vec<[f32; 3]>, Vec<[usize; 3]>)> {
                 };
 
                 for (v1, v2, v3) in &triags.vertices {
-                    faces.push([v1 + offset, v2 + offset, v3 + offset]);
+                    faces.push([*v1, *v2, *v3]);
                 }
             }
         }
 
-        offset = verts.len();
+        out_objects.push((name, verts, faces));
     }
 
-    Some((verts, faces))
+    Some(out_objects)
+}
+
+pub struct RocketFactory {
+    balls: [ObjectFactory; 3],
+    rocket: ObjectFactory,
+}
+
+impl RocketFactory {
+    pub fn new(factories: Vec<(String, ObjectFactory)>) -> Option<Self> {
+        let mut b1 = None;
+        let mut b2 = None;
+        let mut b3 = None;
+        let mut rock = None;
+
+        for (s, fac) in factories {
+            match &s[..] {
+                "Balls1" => b1 = Some(fac),
+                "Balls2" => b2 = Some(fac),
+                "Balls3" => b3 = Some(fac),
+                "Rocket" => rock = Some(fac),
+                _ => {
+                    console_log!("Didn't expect object {}", s);
+                }
+            }
+        }
+
+        Some(RocketFactory { balls: [b1?, b2?, b3?], rocket: rock? })
+    }
+
+    pub fn create(&self, gl: &GL, renderer: &mut Renderer) -> Option<impl Physics<Matrix4<f32>, ()>> {
+        let base_entity = Entity::default().with_position(Vector3::new(0.0, -20.0, -100.0)).with_hom_scale(10.0).with_rotation(Vector3::new(-90.0, 0.0, 0.0));
+        let mut builder = PhysicsBuilder::new(EntityPhysics::new(base_entity, None));
+
+        {
+            let balls1 = self.balls[0].create_renderable(gl)?;
+            let balls_entity = Entity::default().with_ang_speed(Vector3::new(0.0, 0.0, 300.0));
+            builder = builder.enter(EntityPhysics::new(balls_entity, balls1.handle())).close();
+            renderer.add_renderable(balls1, 5);
+        }
+
+        {
+            let balls2 = self.balls[1].create_renderable(gl)?;
+            let balls_entity = Entity::default().with_ang_speed(Vector3::new(0.0, 0.0, -500.0));
+            builder = builder.enter(EntityPhysics::new(balls_entity, balls2.handle())).close();
+            renderer.add_renderable(balls2, 5);
+        }
+
+        {
+            let balls3 = self.balls[2].create_renderable(gl)?;
+            let balls_entity = Entity::default().with_ang_speed(Vector3::new(0.0, 0.0, 150.0));
+            builder = builder.enter(EntityPhysics::new(balls_entity, balls3.handle())).close();
+            renderer.add_renderable(balls3, 5);
+        }
+
+        {
+            let rocket = self.rocket.create_renderable(gl)?;
+            let rocket_entity = Entity::default();
+            builder = builder.enter(EntityPhysics::new(rocket_entity, rocket.handle())).close();
+            renderer.add_renderable(rocket, 5);
+        }
+
+        Some(builder.finish())
+    }
 }

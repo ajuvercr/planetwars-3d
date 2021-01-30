@@ -6,12 +6,12 @@ use crate::{renderer::{Renderer}, uniform::{Uniform3f, UniformMat4, UniformsHand
 
 pub struct EntityPhysics {
     core: Entity,
-    handle: Option<UniformsHandle>,
+    uniform_handle: Option<UniformsHandle>,
 }
 
 impl EntityPhysics {
     pub fn new<H: Into<Option<UniformsHandle>>>(core: Entity, handle: H) -> Self {
-        Self {core, handle: handle.into()}
+        Self {core, uniform_handle: handle.into()}
     }
 }
 
@@ -21,7 +21,7 @@ impl Physics<Matrix4<f32>, Matrix4<f32>> for EntityPhysics {
 
         let mat = t * self.core.world_matrix();
 
-        if let Some(h) = self.handle.as_mut() {
+        if let Some(h) = self.uniform_handle.as_mut() {
             h.single("u_world", UniformMat4::new_mat4(mat));
             h.single("u_worldViewProjection", UniformMat4::new_mat4(renderer.world_view_projection_matrix));
             h.single(
@@ -58,7 +58,7 @@ pub struct TransformTree<S: Physics<A, B>, A, B> {
 }
 
 impl<S: Physics<A, B>, A, B> TransformTree<S, A, B> {
-    fn add_child<P: Physics<B, ()> + 'static>(&mut self, child: P) {
+    pub fn add_child<P: Physics<B, ()> + 'static>(&mut self, child: P) {
         self.children.push(Box::new(child));
     }
 }

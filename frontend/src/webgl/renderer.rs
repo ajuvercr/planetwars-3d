@@ -91,6 +91,7 @@ impl Renderable for DefaultRenderable {
         self.vao.update(gl)?;
         Some(())
     }
+
     fn render(&mut self, gl: &GL) {
         self.vao.bind(gl, &mut self.shader);
 

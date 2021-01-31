@@ -1,8 +1,10 @@
-use std::marker::PhantomData;
 use super::Entity;
+use std::marker::PhantomData;
 
-
-use crate::{renderer::{Renderer}, uniform::{Uniform3f, UniformMat4, UniformsHandle}};
+use crate::{
+    renderer::Renderer,
+    uniform::{Uniform3f, UniformMat4, UniformsHandle},
+};
 
 pub struct EntityPhysics {
     core: Entity,
@@ -11,23 +13,31 @@ pub struct EntityPhysics {
 
 impl EntityPhysics {
     pub fn new<H: Into<Option<UniformsHandle>>>(core: Entity, handle: H) -> Self {
-        Self {core, uniform_handle: handle.into()}
+        Self {
+            core,
+            uniform_handle: handle.into(),
+        }
     }
 }
 
 impl Physics<Matrix4<f32>, Matrix4<f32>> for EntityPhysics {
-    fn update(&mut self, t: &Matrix4<f32>, dt: f32, renderer: &mut Renderer) -> Option<Matrix4<f32>> {
+    fn update(
+        &mut self,
+        t: &Matrix4<f32>,
+        dt: f32,
+        renderer: &mut Renderer,
+    ) -> Option<Matrix4<f32>> {
         self.core.update(dt);
 
         let mat = t * self.core.world_matrix();
 
         if let Some(h) = self.uniform_handle.as_mut() {
             h.single("u_world", UniformMat4::new_mat4(mat));
-            h.single("u_worldViewProjection", UniformMat4::new_mat4(renderer.world_view_projection_matrix));
             h.single(
-                "u_color",
-                Uniform3f::new(1.0, 1.0, 1.0),
+                "u_worldViewProjection",
+                UniformMat4::new_mat4(renderer.world_view_projection_matrix),
             );
+            h.single("u_color", Uniform3f::new(1.0, 1.0, 1.0));
             h.single(
                 "u_reverseLightDirection",
                 Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
@@ -44,7 +54,6 @@ impl<A: Clone> Physics<A, A> for IdPhysics {
         Some(t.clone())
     }
 }
-
 
 /// In physics, you are expected to send the world uniform to DefaultRenderable
 pub trait Physics<A, B> {
@@ -69,8 +78,10 @@ impl<S: Physics<A, B>, A, B> Physics<A, ()> for TransformTree<S, A, B> {
         let b = self.state.update(t, dt, renderer)?;
 
         // Walk children
-        self.children.iter_mut()
-            .for_each(|x| x.update(&b, dt, renderer).expect("Fold wasn't the right idea"));
+        self.children.iter_mut().for_each(|x| {
+            x.update(&b, dt, renderer)
+                .expect("Fold wasn't the right idea")
+        });
 
         Some(())
     }
@@ -115,14 +126,19 @@ mod builder {
                 parent: self,
             }
         }
-        pub fn add_child<C: Physics<B, ()> + 'static>(&mut self , child: C) {
+        pub fn add_child<C: Physics<B, ()> + 'static>(&mut self, child: C) {
             self.current.children.push(Box::new(child));
         }
     }
 
-    impl<S: Physics<A, B>, A, B: 'static, S2: Physics<B, C> + 'static, C: 'static, P> PhysicsBuilder<S2, B, C, PhysicsBuilder<S, A, B, P>> {
+    impl<S: Physics<A, B>, A, B: 'static, S2: Physics<B, C> + 'static, C: 'static, P>
+        PhysicsBuilder<S2, B, C, PhysicsBuilder<S, A, B, P>>
+    {
         pub fn close(self) -> PhysicsBuilder<S, A, B, P> {
-            let PhysicsBuilder { current, mut parent} = self;
+            let PhysicsBuilder {
+                current,
+                mut parent,
+            } = self;
             parent.current.add_child(current);
             parent
         }

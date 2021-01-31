@@ -1,4 +1,4 @@
-use cgmath::{Deg, Euler, Matrix4, Vector3, InnerSpace};
+use cgmath::{Deg, Euler, InnerSpace, Matrix4, Vector3};
 use pw_derive::Settings;
 use serde::{Deserialize, Serialize};
 
@@ -41,13 +41,14 @@ impl Entity {
         let scale_max = self.scale.max();
 
         let o_min_c = origin - pos;
-        let big_d = cgmath::dot(direction, o_min_c).powi(2) - (o_min_c.magnitude2() - scale_max.powi(2));
+        let big_d =
+            cgmath::dot(direction, o_min_c).powi(2) - (o_min_c.magnitude2() - scale_max.powi(2));
         if big_d < 0.0 {
             return false;
         }
 
         let big_d_sqrt = big_d.sqrt();
-        let distance = - cgmath::dot(direction, o_min_c) + big_d_sqrt;
+        let distance = -cgmath::dot(direction, o_min_c) + big_d_sqrt;
 
         distance > 0.0
     }

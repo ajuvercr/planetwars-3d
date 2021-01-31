@@ -1,17 +1,15 @@
-use web_sys::WebGlRenderingContext as GL;
-use web_sys::*;
+use crate::gl::{GL, self};
 
 use crate::uniform::Uniform;
 use std::collections::HashMap;
 
-fn load_shader(gl: &GL, shader_source: &str, shader_type: u32) -> Option<web_sys::WebGlShader> {
+fn load_shader(gl: &GL, shader_source: &str, shader_type: u32) -> Option<gl::GlShader> {
     let shader = gl.create_shader(shader_type)?;
     gl.shader_source(&shader, shader_source);
     gl.compile_shader(&shader);
 
     let compiled = gl
         .get_shader_parameter(&shader, GL::COMPILE_STATUS)
-        .as_bool()
         .unwrap();
     if !compiled {
         console_log!(
@@ -19,14 +17,14 @@ fn load_shader(gl: &GL, shader_source: &str, shader_type: u32) -> Option<web_sys
             shader_source,
             gl.get_shader_info_log(&shader).unwrap()
         );
-        gl.delete_shader(Some(&shader)); // Wtf why this option?
+        gl.delete_shader(&shader); // Wtf why this option?
         return None;
     }
 
     Some(shader)
 }
 
-fn create_program(gl: &GL, shaders: Vec<web_sys::WebGlShader>) -> Option<web_sys::WebGlProgram> {
+fn create_program(gl: &GL, shaders: Vec<gl::GlShader>) -> Option<gl::GlProgram> {
     let program = gl.create_program()?;
     shaders
         .iter()
@@ -36,7 +34,6 @@ fn create_program(gl: &GL, shaders: Vec<web_sys::WebGlShader>) -> Option<web_sys
 
     let linked = gl
         .get_program_parameter(&program, GL::LINK_STATUS)
-        .as_bool()
         .unwrap();
     if !linked {
         console_log!(
@@ -44,7 +41,7 @@ fn create_program(gl: &GL, shaders: Vec<web_sys::WebGlShader>) -> Option<web_sys
             program,
             gl.get_program_info_log(&program).unwrap(),
         );
-        gl.delete_program(Some(&program)); // Wtf why this option?
+        gl.delete_program(&program); // Wtf why this option?
         return None;
     }
 
@@ -71,13 +68,13 @@ impl ShaderFactory {
 }
 
 pub struct Shader {
-    shader: web_sys::WebGlProgram,
-    uniform_cache: HashMap<String, WebGlUniformLocation>,
+    shader: gl::GlProgram,
+    uniform_cache: HashMap<String, gl::GlUniformLocation>,
     attrib_cache: HashMap<String, i32>,
 }
 
 impl Shader {
-    fn new(shader: web_sys::WebGlProgram) -> Self {
+    fn new(shader: gl::GlProgram) -> Self {
         Self {
             shader,
             uniform_cache: HashMap::new(),
@@ -117,7 +114,7 @@ impl Shader {
         gl.use_program(Some(&self.shader));
     }
 
-    pub fn get_uniform_location(&mut self, gl: &GL, name: &str) -> Option<WebGlUniformLocation> {
+    pub fn get_uniform_location(&mut self, gl: &GL, name: &str) -> Option<gl::GlUniformLocation> {
         if let Some(location) = self.uniform_cache.get(name) {
             Some(location.clone())
         } else {
@@ -146,11 +143,11 @@ impl Shader {
     }
 
     pub unsafe fn drop_ref(&self, gl: &GL) {
-        gl.delete_program(Some(&self.shader));
+        gl.delete_program(&self.shader);
     }
 
     // This can be just a ref too
     pub fn drop(self, gl: &GL) {
-        gl.delete_program(Some(&self.shader));
+        gl.delete_program(&self.shader);
     }
 }

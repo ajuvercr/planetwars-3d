@@ -1,8 +1,7 @@
-use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
-pub async fn fetch(url: &str) -> Result<String, JsValue> {
+async fn _fetch(url: &str) -> Result<String, JsValue> {
     use web_sys::{Request, RequestInit, RequestMode, Response};
 
     let mut opts = RequestInit::new();
@@ -28,24 +27,7 @@ pub async fn fetch(url: &str) -> Result<String, JsValue> {
     Ok(text)
 }
 
-pub struct FpsCounter {
-    fps: u32,
-    time: f64,
-}
-
-impl FpsCounter {
-    pub fn new() -> Self {
-        Self { fps: 0, time: 0.0 }
-    }
-
-    pub fn update(&mut self, dt: f64) {
-        self.time += dt;
-        self.fps += 1;
-
-        if self.time > 1.0 {
-            self.time = 0.0;
-            console_log!("Fps {}", self.fps);
-            self.fps = 0;
-        }
-    }
+pub async fn fetch(url: &str) -> Result<String, String> {
+    let out = _fetch(url).await;
+    out.map_err(|e| format!("{:?}", e))
 }

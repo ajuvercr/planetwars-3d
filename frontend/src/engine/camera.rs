@@ -1,10 +1,10 @@
 use super::{Entity, Vec3};
 use crate::set_info;
+use cgmath::InnerSpace;
 use cgmath::Vector4;
 use cgmath::{perspective, prelude::SquareMatrix, Deg, Matrix4, Vector3};
-use cgmath::InnerSpace;
 use std::sync::mpsc;
-use wasm_bindgen::prelude::*;
+
 pub enum CameraEvent {
     AddAngle(Vector3<f32>),
     ResetAngle(Vector3<f32>),
@@ -18,13 +18,13 @@ pub enum CameraEvent {
     SetFov(f32),
 }
 
-#[wasm_bindgen]
+#[cfg_attr(feature = "web", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Debug, Clone)]
 pub struct CameraHandle {
     tx: mpsc::Sender<CameraEvent>,
 }
 
-#[wasm_bindgen]
+#[cfg_attr(feature = "web", wasm_bindgen::prelude::wasm_bindgen)]
 impl CameraHandle {
     pub fn reset_angle(&self, x: f32, y: f32, z: f32) {
         self.tx
@@ -96,7 +96,6 @@ impl Camera {
         }
     }
 
-
     pub fn handle_click(&self, x: f32, y: f32) -> (Vector3<f32>, Vector3<f32>) {
         let mat = self.world_view_projection_matrix.invert().unwrap();
         let coord_near = Vector4::new(x * self.near, y * self.near, -self.near, self.near);
@@ -107,7 +106,6 @@ impl Camera {
 
         (near, (far - near).normalize())
     }
-
 
     fn reset_projection(&mut self) {
         // self.projection_matrix = frustum(-0.5 * self.aspect, 0.5 * self.aspect, -0.5, 0.5, self.near, self.far);

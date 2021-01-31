@@ -1,22 +1,20 @@
 mod planet;
-use crate::engine::Camera;
+use crate::{engine::Camera, util::fetch};
 use crate::engine::{Object, ObjectConfig, ObjectFactory};
 use crate::models::gen_sphere_faces;
 use crate::uniform::Uniform3f;
 use crate::webgl::renderer::{BatchRenderable, BatchRenderableHandle};
 
-use crate::util::*;
 use crate::uniform::UniformsHandle;
 use crate::{shader::Shader, webgl::renderer::Renderer};
 pub use planet::Planet;
 use pw_derive::Settings;
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::JsValue;
 
 use cgmath::Vector3;
 
 use serde_json;
-use web_sys::WebGlRenderingContext as GL;
+use crate::gl::GL;
 
 #[derive(Debug, Clone, Settings, Serialize, Deserialize)]
 pub struct Planets {
@@ -35,7 +33,7 @@ impl Planets {
     pub async fn load(location: &str) -> Self {
         let ms = fetch(location).await;
         match ms.and_then(|s| {
-            serde_json::from_str(&s).map_err(|e| wasm_bindgen::JsValue::from(format!("{:?}", e)))
+            serde_json::from_str(&s).map_err(|e| format!("{:?}", e))
         }) {
             Ok(e) => e,
             Err(e) => {
@@ -73,19 +71,13 @@ impl Universe {
 
     pub fn handle_click(&mut self, origin: Vector3<f32>, direction: Vector3<f32>) {
         for i in self.last_clicked.drain(..) {
-            self.uniforms[i].single(
-                "u_color",
-                Uniform3f::new(1.0, 1.0, 1.0),
-            );
+            self.uniforms[i].single("u_color", Uniform3f::new(1.0, 1.0, 1.0));
         }
 
         for (i, (o, u)) in self.objects.iter().zip(&self.uniforms).enumerate() {
             if o.click_hit(origin, direction) {
                 self.last_clicked.push(i);
-                u.single(
-                    "u_color",
-                    Uniform3f::new(1.0, 0.0, 1.0),
-                );
+                u.single("u_color", Uniform3f::new(1.0, 0.0, 1.0));
             }
         }
     }
@@ -95,7 +87,7 @@ impl Universe {
         gl: &GL,
         renderer: &mut Renderer,
         location: &str,
-    ) -> Result<Planets, JsValue> {
+    ) -> Result<Planets, String> {
         self.planet_factory = {
             let vert_source = fetch("shaders/basic.vert").await?;
             let frag_source = fetch("shaders/basic.frag").await?;
@@ -120,7 +112,7 @@ impl Universe {
         Ok(planets)
     }
 
-    pub fn set_planets(&mut self, planets: &Planets) -> Result<(), JsValue> {
+    pub fn set_planets(&mut self, planets: &Planets) -> Result<(), String> {
         // Set visable or not, or create new Objects
         for planet in &planets.planets[self.objects.len()..] {
             let handle = self
@@ -131,10 +123,7 @@ impl Universe {
                 "u_reverseLightDirection",
                 Uniform3f::new(0.28735632183908044, 0.4022988505747126, 0.5747126436781609),
             );
-            handle.single(
-                "u_color",
-                Uniform3f::new(1.0, 1.0, 1.0),
-            );
+            handle.single("u_color", Uniform3f::new(1.0, 1.0, 1.0));
             let obj = Object::new(handle, planet.location.clone());
             self.uniforms.push(obj.uniform_handle());
             self.objects.push(obj);

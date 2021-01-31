@@ -4,12 +4,12 @@ use super::{
     Shader,
 };
 use crate::uniform::{UniformUpdate, UniformsHandle};
+use cgmath::{Matrix4, Zero};
 use std::{
     collections::{BTreeSet, HashMap},
     sync::mpsc,
 };
-use cgmath::{Matrix4, Zero};
-use web_sys::WebGlRenderingContext as GL;
+use crate::gl::GL;
 
 static SHOW_UNIFORMS: bool = false;
 
@@ -97,7 +97,8 @@ impl Renderable for DefaultRenderable {
 
         // Set all uniforms for this buffer to render
         for (name, uniform) in self.uniforms.iter() {
-            if SHOW_UNIFORMS { // Debug statement
+            if SHOW_UNIFORMS {
+                // Debug statement
                 console_log!("Setting uniform {} {:?}", name, uniform);
             }
 

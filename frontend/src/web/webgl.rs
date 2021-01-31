@@ -1,19 +1,20 @@
-use crate::{engine::physics::{EntityPhysics, IdPhysics, Physics, PhysicsBuilder, TransformTree}, models::{self, RocketFactory}};
-use crate::util;
+use crate::{
+    engine::physics::{EntityPhysics, IdPhysics, Physics, PhysicsBuilder, TransformTree},
+    models::{self, RocketFactory},
+};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::engine::{Object, ObjectConfig, ObjectFactory};
-
-use super::{renderer::Renderer, Shader};
-use crate::{
-    engine::{Camera, CameraHandle, Entity},
-};
+use crate::FpsCounter;
+use crate::{renderer::Renderer, webgl::Shader};
+use crate::engine::{Camera, CameraHandle, Entity};
 use cgmath::{Matrix4, Vector3};
-use web_sys::HtmlCanvasElement;
-use web_sys::WebGlRenderingContext as GL;
+use web_sys::{HtmlCanvasElement};
+use crate::gl::GL;
+use crate::util;
 
-#[wasm_bindgen]
+#[cfg_attr(feature = "web", wasm_bindgen)]
 pub struct WebGl {
     canvas: HtmlCanvasElement,
     gl: GL,
@@ -22,20 +23,23 @@ pub struct WebGl {
 
     es: TransformTree<IdPhysics, Matrix4<f32>, Matrix4<f32>>,
     // universe: Universe,
-
     camera: Camera,
     camera_handle: CameraHandle,
 
     renderer: Renderer,
 
-    fps_counter: util::FpsCounter,
+    fps_counter: FpsCounter,
 }
 
 unsafe impl Send for WebGl {}
 
 unsafe impl Sync for WebGl {}
 
-fn test_es(gl: &GL, sphere_factory: &ObjectFactory, renderer: &mut Renderer) -> Option<impl Physics<Matrix4<f32>, ()>> {
+fn test_es(
+    gl: &GL,
+    sphere_factory: &ObjectFactory,
+    renderer: &mut Renderer,
+) -> Option<impl Physics<Matrix4<f32>, ()>> {
     let mut builder = PhysicsBuilder::new(IdPhysics);
 
     builder = {
@@ -43,9 +47,7 @@ fn test_es(gl: &GL, sphere_factory: &ObjectFactory, renderer: &mut Renderer) -> 
             .with_position(Vector3::new(-500.0, 0.0, -500.0))
             .with_ang_speed(Vector3::new(0.0, 4.0, 0.0));
 
-        let mut builder = builder.enter(
-            EntityPhysics::new(entity, None)
-        );
+        let mut builder = builder.enter(EntityPhysics::new(entity, None));
 
         let s1 = sphere_factory.create_renderable(gl)?;
         let e1 = Entity::default()
@@ -54,14 +56,12 @@ fn test_es(gl: &GL, sphere_factory: &ObjectFactory, renderer: &mut Renderer) -> 
         builder = builder.enter(EntityPhysics::new(e1, s1.handle())).close();
         renderer.add_renderable(s1, 4);
 
-
         let s2 = sphere_factory.create_renderable(gl)?;
         let e2 = Entity::default()
             .with_position(Vector3::new(0.0, -100.0, 0.0))
             .with_hom_scale(50.0);
         builder = builder.enter(EntityPhysics::new(e2, s2.handle())).close();
         renderer.add_renderable(s2, 4);
-
 
         let s3 = sphere_factory.create_renderable(gl)?;
         let e3 = Entity::default()
@@ -73,16 +73,23 @@ fn test_es(gl: &GL, sphere_factory: &ObjectFactory, renderer: &mut Renderer) -> 
         builder.close()
     };
 
-
     Some(builder.finish())
 }
 
-fn build_rockets(gl: &GL, ship_factory: &RocketFactory, renderer: &mut Renderer) -> Option<impl Physics<Matrix4<f32>, ()>> {
+fn build_rockets(
+    gl: &GL,
+    ship_factory: &RocketFactory,
+    renderer: &mut Renderer,
+) -> Option<impl Physics<Matrix4<f32>, ()>> {
     let mut builder = PhysicsBuilder::new(IdPhysics);
 
     for i in -5..5 {
-        for j in -5 .. 5 {
-            let ship_entity = Entity::default().with_position(Vector3::new(100.0 * i as f32, 0.0, 100.0 * j as f32));
+        for j in -5..5 {
+            let ship_entity = Entity::default().with_position(Vector3::new(
+                100.0 * i as f32,
+                0.0,
+                100.0 * j as f32,
+            ));
             let mut rocket = PhysicsBuilder::new(EntityPhysics::new(ship_entity, None));
             rocket.add_child(ship_factory.create(gl, renderer).unwrap());
             builder.add_child(rocket.finish());
@@ -91,7 +98,6 @@ fn build_rockets(gl: &GL, ship_factory: &RocketFactory, renderer: &mut Renderer)
 
     Some(builder.finish())
 }
-
 
 #[wasm_bindgen]
 impl WebGl {
@@ -106,12 +112,17 @@ impl WebGl {
             .dyn_into()
             .unwrap();
 
-        let gl: GL = canvas
-            .get_context("webgl")
-            .unwrap()
-            .unwrap()
-            .dyn_into()
-            .unwrap();
+            let gl: GL = {
+                let webgl: web_sys::WebGlRenderingContext = canvas
+                    .get_context("webgl")
+                    .unwrap()
+                    .unwrap()
+                    .dyn_into()
+                    .unwrap();
+                GL {
+                    gl: webgl
+                }
+            };
 
         let camera = Camera::new();
         let camera_handle = camera.handle();
@@ -123,12 +134,11 @@ impl WebGl {
             es: PhysicsBuilder::new(IdPhysics).finish(),
             objects: Vec::new(),
             // universe: Universe::place_holder(),
-
             camera,
             camera_handle,
 
             renderer: Renderer::new(),
-            fps_counter: util::FpsCounter::new(),
+            fps_counter: FpsCounter::new(),
         })
     }
 
@@ -164,7 +174,6 @@ impl WebGl {
 
         // self.universe.init(gl, &mut self.renderer, "universe.json").await?;
 
-
         let shader_factory = {
             let vert_source = util::fetch("shaders/basic.vert").await?;
             let frag_source = util::fetch("shaders/basic.frag").await?;
@@ -176,7 +185,8 @@ impl WebGl {
             ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone())
         };
 
-        self.es.add_child(test_es(gl, &sphere_factory, &mut self.renderer).unwrap());
+        self.es
+            .add_child(test_es(gl, &sphere_factory, &mut self.renderer).unwrap());
 
         let cube_factory = {
             let (verts, faces) = models::gen_cube_faces();
@@ -185,11 +195,22 @@ impl WebGl {
 
         let ship_factory: RocketFactory = {
             let parts = models::load_rocket().await.ok_or("Ship loading failed!")?;
-            let parts = parts.into_iter()
-                .map(|(name, verts, faces)| (name, ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone()))).collect();
+            let parts = parts
+                .into_iter()
+                .map(|(name, verts, faces)| {
+                    (
+                        name,
+                        ObjectFactory::new(
+                            ObjectConfig::Simple,
+                            verts,
+                            faces,
+                            shader_factory.clone(),
+                        ),
+                    )
+                })
+                .collect();
             RocketFactory::new(parts).unwrap()
         };
-
 
         // Setup sphere
         let sphere_entity = Entity::default()
@@ -206,9 +227,8 @@ impl WebGl {
             );
         }
 
-        self.es.add_child(
-            build_rockets(gl, &ship_factory, &mut self.renderer).unwrap()
-        );
+        self.es
+            .add_child(build_rockets(gl, &ship_factory, &mut self.renderer).unwrap());
 
         // let ship_creation_handle = {
         //     let ship_renderable = BatchRenderable::new(
@@ -269,9 +289,7 @@ impl WebGl {
         Ok(self)
     }
 
-    pub fn handle_client_update(&mut self, _val: &JsValue) {
-
-    }
+    pub fn handle_client_update(&mut self, _val: &JsValue) {}
 
     pub fn update(&mut self, dt: f64) -> Result<(), JsValue> {
         self.fps_counter.update(dt);
@@ -283,7 +301,8 @@ impl WebGl {
         self.renderer.world_view_projection_matrix = camera.world_view_projection_matrix();
 
         // self.universe.update(dt, camera);
-        self.es.update(&Matrix4::from_scale(1.0), dt as f32, &mut self.renderer);
+        self.es
+            .update(&Matrix4::from_scale(1.0), dt as f32, &mut self.renderer);
 
         self.objects
             .iter_mut()

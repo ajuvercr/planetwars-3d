@@ -1,5 +1,4 @@
-use web_sys::WebGlRenderingContext as GL;
-use web_sys::*;
+use crate::gl::{GL, self};
 
 use cgmath::{Matrix4, Vector4};
 use std::{collections::HashMap, fmt::Debug, ops::Deref, sync::mpsc};
@@ -40,7 +39,7 @@ pub enum UniformUpdate {
 /*             Start super ugly generic code, just uniforms             */
 /************************************************************************/
 pub trait Uniform: Debug {
-    fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation);
+    fn set_uniform(&self, gl: &GL, location: &gl::GlUniformLocation);
 }
 
 #[derive(Debug)]
@@ -53,7 +52,7 @@ impl<A: Deref<Target = [f32]>> Uniform2fv<A> {
     }
 }
 impl<A: Deref<Target = [f32]> + Debug> Uniform for Uniform2fv<A> {
-    fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
+    fn set_uniform(&self, gl: &GL, location: &gl::GlUniformLocation) {
         gl.uniform2fv_with_f32_array(Some(location), self.data.deref());
     }
 }
@@ -68,7 +67,7 @@ impl<A: Deref<Target = [f32]>> Uniform3fv<A> {
     }
 }
 impl<A: Deref<Target = [f32]> + Debug> Uniform for Uniform3fv<A> {
-    fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
+    fn set_uniform(&self, gl: &GL, location: &gl::GlUniformLocation) {
         gl.uniform3fv_with_f32_array(Some(location), self.data.deref());
     }
 }
@@ -83,7 +82,7 @@ impl<A: Deref<Target = [i32]>> Uniformifv<A> {
     }
 }
 impl<A: Deref<Target = [i32]> + Debug> Uniform for Uniformifv<A> {
-    fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
+    fn set_uniform(&self, gl: &GL, location: &gl::GlUniformLocation) {
         gl.uniform1iv_with_i32_array(Some(location), self.data.deref());
     }
 }
@@ -101,7 +100,7 @@ impl Uniform4f {
     }
 }
 impl Uniform for Uniform4f {
-    fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
+    fn set_uniform(&self, gl: &GL, location: &gl::GlUniformLocation) {
         gl.uniform4f(Some(location), self.x, self.y, self.z, self.w);
     }
 }
@@ -118,7 +117,7 @@ impl Uniform3f {
     }
 }
 impl Uniform for Uniform3f {
-    fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
+    fn set_uniform(&self, gl: &GL, location: &gl::GlUniformLocation) {
         gl.uniform3f(Some(location), self.x, self.y, self.z);
     }
 }
@@ -134,7 +133,7 @@ impl Uniform2f {
     }
 }
 impl Uniform for Uniform2f {
-    fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
+    fn set_uniform(&self, gl: &GL, location: &gl::GlUniformLocation) {
         gl.uniform2f(Some(location), self.x, self.y);
     }
 }
@@ -148,7 +147,7 @@ impl Uniform1f {
     }
 }
 impl Uniform for Uniform1f {
-    fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
+    fn set_uniform(&self, gl: &GL, location: &gl::GlUniformLocation) {
         gl.uniform1f(Some(location), self.x);
     }
 }
@@ -171,7 +170,7 @@ impl Uniform1i {
     }
 }
 impl Uniform for Uniform1i {
-    fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
+    fn set_uniform(&self, gl: &GL, location: &gl::GlUniformLocation) {
         gl.uniform1i(Some(location), self.x);
     }
 }
@@ -194,7 +193,7 @@ impl<A: Deref<Target = [f32]>> UniformMat3fv<A> {
     }
 }
 impl<A: Deref<Target = [f32]> + Debug> Uniform for UniformMat3fv<A> {
-    fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
+    fn set_uniform(&self, gl: &GL, location: &gl::GlUniformLocation) {
         gl.uniform_matrix3fv_with_f32_array(Some(location), self.transpose, self.data.deref());
     }
 }
@@ -232,7 +231,7 @@ impl<A: Deref<Target = [f32]>> UniformMat4<A> {
     }
 }
 impl<A: Deref<Target = [f32]> + Debug> Uniform for UniformMat4<A> {
-    fn set_uniform(&self, gl: &GL, location: &WebGlUniformLocation) {
+    fn set_uniform(&self, gl: &GL, location: &gl::GlUniformLocation) {
         gl.uniform_matrix4fv_with_f32_array(Some(location), self.transpose, self.data.deref());
     }
 }

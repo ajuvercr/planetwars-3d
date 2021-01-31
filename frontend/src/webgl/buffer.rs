@@ -2,9 +2,8 @@ pub use buffer::{Buffer, BufferHandle, BufferTrait, IndexBuffer, VertexBuffer};
 mod buffer {
     use std::ops::Deref;
 
+    use crate::gl::{self, GL};
     use std::sync::mpsc;
-    use web_sys::WebGlRenderingContext as GL;
-    use web_sys::*;
 
     pub type VertexBuffer = Buffer<f32, Vec<f32>>;
     pub type IndexBuffer = Buffer<u16, Vec<u16>>;
@@ -44,7 +43,7 @@ mod buffer {
 
     #[derive(Debug)]
     pub struct Buffer<T, A: Deref<Target = [T]>> {
-        buffer: WebGlBuffer,
+        buffer: gl::GlBuffer,
         data: Option<Box<A>>,
         count: usize,
         target: u32,
@@ -98,9 +97,8 @@ mod buffer {
             self.count = data.len();
             self.data = Some(data);
 
-            let verts = unsafe { js_sys::Float32Array::view(self.data.as_ref().unwrap()) };
             gl.bind_buffer(self.target, Some(&self.buffer));
-            gl.buffer_data_with_array_buffer_view(self.target, &verts, GL::STATIC_DRAW);
+            gl.set_f32_buffer_data(self.target, self.data.as_ref().unwrap(), GL::STATIC_DRAW);
         }
     }
 
@@ -112,9 +110,8 @@ mod buffer {
             self.count = data.len();
             self.data = Some(data);
 
-            let verts = unsafe { js_sys::Int32Array::view(self.data.as_ref().unwrap()) };
             gl.bind_buffer(self.target, Some(&self.buffer));
-            gl.buffer_data_with_array_buffer_view(self.target, &verts, GL::STATIC_DRAW);
+            gl.set_i32_buffer_data(self.target, self.data.as_ref().unwrap(), GL::STATIC_DRAW)
         }
     }
 
@@ -126,9 +123,8 @@ mod buffer {
             self.count = data.len();
             self.data = Some(data);
 
-            let verts = unsafe { js_sys::Uint16Array::view(self.data.as_ref().unwrap()) };
             gl.bind_buffer(self.target, Some(&self.buffer));
-            gl.buffer_data_with_array_buffer_view(self.target, &verts, GL::STATIC_DRAW);
+            gl.set_u16_buffer_data(self.target, self.data.as_ref().unwrap(), GL::STATIC_DRAW)
         }
     }
 
@@ -165,8 +161,7 @@ mod buffer {
 pub use vertex::{VertexArray, VertexBufferLayout};
 mod vertex {
     use super::super::Shader;
-    use web_sys::WebGlRenderingContext as GL;
-
+    use crate::gl::GL;
     use super::{BufferTrait, VertexBuffer};
 
     #[derive(Debug)]

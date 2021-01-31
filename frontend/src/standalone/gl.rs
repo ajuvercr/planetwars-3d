@@ -88,7 +88,7 @@ impl GLStruct {
         todo!();
     }
 
-    pub fn delete_shader(&self, shader: &GlShader) {
+    pub fn delete_shader(&self, shader: Option<&GlShader>) {
         todo!();
     }
 

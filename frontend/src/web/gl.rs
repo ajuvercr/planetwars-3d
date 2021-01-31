@@ -53,18 +53,10 @@ impl GLStruct {
             .as_bool()
     }
 
-    pub fn delete_shader(&self, shader: &GlShader) {
-        self.gl.delete_shader(Some(shader));
-    }
-
     pub fn get_program_parameter(&self, program: &GlProgram, type_: u32) -> Option<bool> {
         self.gl
             .get_program_parameter(program, type_)
             .as_bool()
-    }
-
-    pub fn delete_program(&self, program: &GlProgram) {
-        self.gl.delete_program(Some(program));
     }
 }
 

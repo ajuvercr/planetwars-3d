@@ -17,7 +17,7 @@ fn load_shader(gl: &GL, shader_source: &str, shader_type: u32) -> Option<gl::GlS
             shader_source,
             gl.get_shader_info_log(&shader).unwrap()
         );
-        gl.delete_shader(&shader); // Wtf why this option?
+        gl.delete_shader(Some(&shader)); // Wtf why this option?
         return None;
     }
 
@@ -41,7 +41,7 @@ fn create_program(gl: &GL, shaders: Vec<gl::GlShader>) -> Option<gl::GlProgram> 
             program,
             gl.get_program_info_log(&program).unwrap(),
         );
-        gl.delete_program(&program); // Wtf why this option?
+        gl.delete_program(Some(&program)); // Wtf why this option?
         return None;
     }
 
@@ -143,11 +143,11 @@ impl Shader {
     }
 
     pub unsafe fn drop_ref(&self, gl: &GL) {
-        gl.delete_program(&self.shader);
+        gl.delete_program(Some(&self.shader));
     }
 
     // This can be just a ref too
     pub fn drop(self, gl: &GL) {
-        gl.delete_program(&self.shader);
+        gl.delete_program(Some(&self.shader));
     }
 }

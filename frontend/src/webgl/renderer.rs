@@ -95,8 +95,9 @@ impl Renderable for DefaultRenderable {
     fn render(&mut self, gl: &GL) {
         self.vao.bind(gl, &mut self.shader);
 
+        // Set all uniforms for this buffer to render
         for (name, uniform) in self.uniforms.iter() {
-            if SHOW_UNIFORMS {
+            if SHOW_UNIFORMS { // Debug statement
                 console_log!("Setting uniform {} {:?}", name, uniform);
             }
 

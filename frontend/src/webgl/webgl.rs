@@ -77,6 +77,21 @@ fn test_es(gl: &GL, sphere_factory: &ObjectFactory, renderer: &mut Renderer) -> 
     Some(builder.finish())
 }
 
+fn build_rockets(gl: &GL, ship_factory: &RocketFactory, renderer: &mut Renderer) -> Option<impl Physics<Matrix4<f32>, ()>> {
+    let mut builder = PhysicsBuilder::new(IdPhysics);
+
+    for i in -5..5 {
+        for j in -5 .. 5 {
+            let ship_entity = Entity::default().with_position(Vector3::new(100.0 * i as f32, 0.0, 100.0 * j as f32));
+            let mut rocket = PhysicsBuilder::new(EntityPhysics::new(ship_entity, None));
+            rocket.add_child(ship_factory.create(gl, renderer).unwrap());
+            builder.add_child(rocket.finish());
+        }
+    }
+
+    Some(builder.finish())
+}
+
 
 #[wasm_bindgen]
 impl WebGl {
@@ -192,7 +207,7 @@ impl WebGl {
         }
 
         self.es.add_child(
-            ship_factory.create(gl, &mut self.renderer).unwrap()
+            build_rockets(gl, &ship_factory, &mut self.renderer).unwrap()
         );
 
         // let ship_creation_handle = {

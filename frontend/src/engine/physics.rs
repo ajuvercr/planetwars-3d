@@ -115,6 +115,9 @@ mod builder {
                 parent: self,
             }
         }
+        pub fn add_child<C: Physics<B, ()> + 'static>(&mut self , child: C) {
+            self.current.children.push(Box::new(child));
+        }
     }
 
     impl<S: Physics<A, B>, A, B: 'static, S2: Physics<B, C> + 'static, C: 'static, P> PhysicsBuilder<S2, B, C, PhysicsBuilder<S, A, B, P>> {

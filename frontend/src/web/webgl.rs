@@ -1,103 +1,22 @@
-use crate::{
-    engine::physics::{EntityPhysics, IdPhysics, Physics, PhysicsBuilder, TransformTree},
-    models::{self, RocketFactory},
-};
+use crate::scene::Scene;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use crate::engine::{Object, ObjectConfig, ObjectFactory};
-use crate::FpsCounter;
-use crate::{renderer::Renderer, webgl::Shader};
-use crate::engine::{Camera, CameraHandle, Entity};
-use cgmath::{Matrix4, Vector3};
-use web_sys::{HtmlCanvasElement};
+use crate::engine::{CameraHandle};
 use crate::gl::GL;
-use crate::util;
+use web_sys::HtmlCanvasElement;
 
-#[cfg_attr(feature = "web", wasm_bindgen)]
+#[wasm_bindgen]
 pub struct WebGl {
     canvas: HtmlCanvasElement,
     gl: GL,
 
-    objects: Vec<Object>,
-
-    es: TransformTree<IdPhysics, Matrix4<f32>, Matrix4<f32>>,
-    // universe: Universe,
-    camera: Camera,
-    camera_handle: CameraHandle,
-
-    renderer: Renderer,
-
-    fps_counter: FpsCounter,
+    scene: Scene,
 }
 
 unsafe impl Send for WebGl {}
 
 unsafe impl Sync for WebGl {}
-
-fn test_es(
-    gl: &GL,
-    sphere_factory: &ObjectFactory,
-    renderer: &mut Renderer,
-) -> Option<impl Physics<Matrix4<f32>, ()>> {
-    let mut builder = PhysicsBuilder::new(IdPhysics);
-
-    builder = {
-        let entity = Entity::default()
-            .with_position(Vector3::new(-500.0, 0.0, -500.0))
-            .with_ang_speed(Vector3::new(0.0, 4.0, 0.0));
-
-        let mut builder = builder.enter(EntityPhysics::new(entity, None));
-
-        let s1 = sphere_factory.create_renderable(gl)?;
-        let e1 = Entity::default()
-            .with_position(Vector3::new(0.0, 100.0, 0.0))
-            .with_hom_scale(50.0);
-        builder = builder.enter(EntityPhysics::new(e1, s1.handle())).close();
-        renderer.add_renderable(s1, 4);
-
-        let s2 = sphere_factory.create_renderable(gl)?;
-        let e2 = Entity::default()
-            .with_position(Vector3::new(0.0, -100.0, 0.0))
-            .with_hom_scale(50.0);
-        builder = builder.enter(EntityPhysics::new(e2, s2.handle())).close();
-        renderer.add_renderable(s2, 4);
-
-        let s3 = sphere_factory.create_renderable(gl)?;
-        let e3 = Entity::default()
-            .with_position(Vector3::new(100.0, 0.0, 0.0))
-            .with_hom_scale(50.0);
-        builder = builder.enter(EntityPhysics::new(e3, s3.handle())).close();
-        renderer.add_renderable(s3, 4);
-
-        builder.close()
-    };
-
-    Some(builder.finish())
-}
-
-fn build_rockets(
-    gl: &GL,
-    ship_factory: &RocketFactory,
-    renderer: &mut Renderer,
-) -> Option<impl Physics<Matrix4<f32>, ()>> {
-    let mut builder = PhysicsBuilder::new(IdPhysics);
-
-    for i in -5..5 {
-        for j in -5..5 {
-            let ship_entity = Entity::default().with_position(Vector3::new(
-                100.0 * i as f32,
-                0.0,
-                100.0 * j as f32,
-            ));
-            let mut rocket = PhysicsBuilder::new(EntityPhysics::new(ship_entity, None));
-            rocket.add_child(ship_factory.create(gl, renderer).unwrap());
-            builder.add_child(rocket.finish());
-        }
-    }
-
-    Some(builder.finish())
-}
 
 #[wasm_bindgen]
 impl WebGl {
@@ -112,38 +31,26 @@ impl WebGl {
             .dyn_into()
             .unwrap();
 
-            let gl: GL = {
-                let webgl: web_sys::WebGlRenderingContext = canvas
-                    .get_context("webgl")
-                    .unwrap()
-                    .unwrap()
-                    .dyn_into()
-                    .unwrap();
-                GL {
-                    gl: webgl
-                }
-            };
-
-        let camera = Camera::new();
-        let camera_handle = camera.handle();
+        let gl: GL = {
+            let webgl: web_sys::WebGlRenderingContext = canvas
+                .get_context("webgl")
+                .unwrap()
+                .unwrap()
+                .dyn_into()
+                .unwrap();
+            GL { gl: webgl }
+        };
 
         Ok(Self {
             canvas,
             gl,
 
-            es: PhysicsBuilder::new(IdPhysics).finish(),
-            objects: Vec::new(),
-            // universe: Universe::place_holder(),
-            camera,
-            camera_handle,
-
-            renderer: Renderer::new(),
-            fps_counter: FpsCounter::new(),
+            scene: Scene::new(),
         })
     }
 
     pub fn camera_handle(&self) -> CameraHandle {
-        self.camera_handle.clone()
+        self.scene.camera_handle()
     }
 
     pub fn resize(&mut self) {
@@ -154,13 +61,11 @@ impl WebGl {
         self.canvas.set_height(height as u32);
         self.gl.viewport(0, 0, width, height);
 
-        self.camera_handle.set_aspect(width as f32 / height as f32);
+        self.scene.camera_handle().set_aspect(width as f32 / height as f32);
     }
 
-    pub async fn init_renderer(mut self) -> Result<WebGl, JsValue> {
-        self.resize();
-
-        let gl = &self.gl;
+    pub async fn init_renderer(self) -> Result<WebGl, JsValue> {
+        let WebGl {scene, gl, canvas} = self;
 
         // Clear the canvas AND the depth buffer.
         gl.clear(GL::COLOR_BUFFER_BIT | GL::DEPTH_BUFFER_BIT);
@@ -172,150 +77,23 @@ impl WebGl {
         // Enable the depth buffer
         gl.enable(GL::DEPTH_TEST);
 
-        // self.universe.init(gl, &mut self.renderer, "universe.json").await?;
-
-        let shader_factory = {
-            let vert_source = util::fetch("shaders/basic.vert").await?;
-            let frag_source = util::fetch("shaders/basic.frag").await?;
-            Shader::factory(frag_source, vert_source)
-        };
-
-        let sphere_factory = {
-            let (verts, faces) = models::gen_sphere_faces(3);
-            ObjectFactory::new(ObjectConfig::Mean, verts, faces, shader_factory.clone())
-        };
-
-        self.es
-            .add_child(test_es(gl, &sphere_factory, &mut self.renderer).unwrap());
-
-        let cube_factory = {
-            let (verts, faces) = models::gen_cube_faces();
-            ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
-        };
-
-        let ship_factory: RocketFactory = {
-            let parts = models::load_rocket().await.ok_or("Ship loading failed!")?;
-            let parts = parts
-                .into_iter()
-                .map(|(name, verts, faces)| {
-                    (
-                        name,
-                        ObjectFactory::new(
-                            ObjectConfig::Simple,
-                            verts,
-                            faces,
-                            shader_factory.clone(),
-                        ),
-                    )
-                })
-                .collect();
-            RocketFactory::new(parts).unwrap()
-        };
-
-        // Setup sphere
-        let sphere_entity = Entity::default()
-            .with_position(Vector3::new(0.0, 0.0, -500.0))
-            .with_ang_speed(Vector3::new(30.0, 60.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
-        {
-            let mut sphere_entity = sphere_entity.clone();
-            sphere_entity.set_position(Vector3::new(0.0, 0.0, -800.0).into());
-            sphere_entity.set_scale(Vector3::new(50.0, 50.0, 50.0).into());
-            self.objects.push(
-                sphere_factory
-                    .create(gl, &mut self.renderer, sphere_entity)
-                    .ok_or("Sphere creation failed")?,
-            );
-        }
-
-        self.es
-            .add_child(build_rockets(gl, &ship_factory, &mut self.renderer).unwrap());
-
-        // let ship_creation_handle = {
-        //     let ship_renderable = BatchRenderable::new(
-        //         ship_factory
-        //             .create_renderable(gl)
-        //             .ok_or("Failed to created renderable ship")?,
-        //     );
-        //     let handle = ship_renderable.handle();
-        //     self.renderer.add_renderable(ship_renderable, 0);
-        //     handle
-        // };
-
-        // for i in -2..2 {
-        //     for j in 0..3 {
-        //         let mut sphere_entity = sphere_entity.clone();
-        //         sphere_entity
-        //             .set_position(Vector3::new((i * 50) as f32, (j * 100) as f32, -500.0).into());
-        //         self.objects
-        //             .push(create_object(&ship_creation_handle, sphere_entity).ok_or("bla")?);
-        //     }
-        // }
-
-        let sphere_factory = {
-            let (verts, faces) = models::gen_sphere_faces(1);
-            ObjectFactory::new(ObjectConfig::Simple, verts, faces, shader_factory.clone())
-        };
-
-        let sphere_entity = Entity::default()
-            .with_position(Vector3::new(-500.0, 0.0, -500.0))
-            .with_hom_scale(50.0)
-            .with_ang_speed(Vector3::new(30.0, 60.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
-        self.objects.push(
-            sphere_factory
-                .create(gl, &mut self.renderer, sphere_entity)
-                .ok_or("Sphere creation failed")?,
-        );
-
-        let cube_entity = Entity::default()
-            .with_position(Vector3::new(500.0, 0.0, -500.0))
-            .with_hom_scale(50.0)
-            .with_ang_speed(Vector3::new(10.0, 30.0, 0.0)); //.with_speed(Vector3::new(5.0, 0.0, 10.0));
-        self.objects.push(
-            cube_factory
-                .create(gl, &mut self.renderer, cube_entity)
-                .ok_or("Cube creation failed")?,
-        );
-
-        // Setup floor
-        let cube_entity = Entity::default()
-            .with_position(Vector3::new(0.0, -100.0, 0.0))
-            .with_scale(5000.0, 5.0, 5000.0);
-        self.objects.push(
-            cube_factory
-                .create(gl, &mut self.renderer, cube_entity)
-                .ok_or("Cube creation failed")?,
-        );
-
-        Ok(self)
+        let scene = scene.init_renderer(&gl).await?;
+        let mut webgl = Self { gl, scene, canvas};
+        webgl.resize();
+        Ok(webgl)
     }
 
-    pub fn handle_client_update(&mut self, _val: &JsValue) {}
+    pub fn handle_client_update(&mut self, _val: &JsValue) {
+        // TODO
+    }
 
     pub fn update(&mut self, dt: f64) -> Result<(), JsValue> {
-        self.fps_counter.update(dt);
-
-        self.camera.update().ok_or("Couldn't update camera")?;
-        let gl = &self.gl;
-
-        let camera = &self.camera;
-        self.renderer.world_view_projection_matrix = camera.world_view_projection_matrix();
-
-        // self.universe.update(dt, camera);
-        self.es
-            .update(&Matrix4::from_scale(1.0), dt as f32, &mut self.renderer);
-
-        self.objects
-            .iter_mut()
-            .for_each(|object| object.update(dt as f32, camera));
-
-        self.renderer
-            .update(gl)
-            .ok_or("Renderer didn't update well")?;
+        self.scene.update(&self.gl, dt)?;
         Ok(())
     }
 
     pub fn render_gl(&mut self) -> Result<(), JsValue> {
-        self.renderer.render(&self.gl);
+        self.scene.render_gl(&self.gl)?;
         Ok(())
     }
 

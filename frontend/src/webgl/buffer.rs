@@ -161,8 +161,8 @@ mod buffer {
 pub use vertex::{VertexArray, VertexBufferLayout};
 mod vertex {
     use super::super::Shader;
-    use crate::gl::GL;
     use super::{BufferTrait, VertexBuffer};
+    use crate::gl::{self, GL};
 
     #[derive(Debug)]
     struct VertexBufferElement {
@@ -226,17 +226,21 @@ mod vertex {
 
     #[derive(Debug)]
     pub struct VertexArray {
+        vao: gl::GlVao,
         buffers: Vec<VertexBuffer>,
         layouts: Vec<VertexBufferLayout>,
     }
 
     impl VertexArray {
         #[inline]
-        pub fn new() -> Self {
-            Self {
+        pub fn new(gl: &GL) -> Option<Self> {
+            let vao = gl.create_vertex_array()?;
+
+            Some(Self {
+                vao,
                 buffers: Vec::new(),
                 layouts: Vec::new(),
-            }
+            })
         }
 
         pub fn add_buffer(&mut self, vb: VertexBuffer, layout: VertexBufferLayout) {
@@ -253,6 +257,7 @@ mod vertex {
 
         pub fn bind(&self, gl: &GL, shader: &mut Shader) {
             shader.bind(gl);
+            gl.bind_vertex_array(Some(&self.vao));
 
             for (buffer, layout) in self.buffers.iter().zip(self.layouts.iter()) {
                 buffer.bind(gl);

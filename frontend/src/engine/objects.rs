@@ -5,8 +5,8 @@ use crate::webgl::renderer::{DefaultRenderable, Renderer};
 use crate::webgl::shader::ShaderFactory;
 use crate::webgl::uniform::UniformsHandle;
 
-use std::collections::HashMap;
 use crate::gl::GL;
+use std::collections::HashMap;
 
 use super::{Float, Index, Mesh, Vector};
 use cgmath::Vector3;
@@ -214,7 +214,7 @@ impl ObjectFactory {
         let mut normal_layout = VertexBufferLayout::new();
         normal_layout.push(GL::FLOAT, 3, 4, "a_normal", false);
 
-        let mut vao = VertexArray::new();
+        let mut vao = VertexArray::new(gl)?;
         vao.add_buffer(vertex_buffer, layout);
         vao.add_buffer(normal_buffer, normal_layout);
 

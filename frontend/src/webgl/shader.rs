@@ -1,4 +1,4 @@
-use crate::gl::{GL, self};
+use crate::gl::{self, GL};
 
 use crate::uniform::Uniform;
 use std::collections::HashMap;
@@ -32,9 +32,7 @@ fn create_program(gl: &GL, shaders: Vec<gl::GlShader>) -> Option<gl::GlProgram> 
 
     gl.link_program(&program);
 
-    let linked = gl
-        .get_program_parameter(&program, GL::LINK_STATUS)
-        .unwrap();
+    let linked = gl.get_program_parameter(&program, GL::LINK_STATUS).unwrap();
     if !linked {
         console_log!(
             "*** Error linking program '{:?}': {}",

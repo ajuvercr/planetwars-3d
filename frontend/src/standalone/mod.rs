@@ -2,10 +2,8 @@ pub mod gl;
 
 pub mod util;
 
-pub fn set_info(x: f32, y: f32, z: f32, angl_x: f32, angl_y: f32, angl_z: f32) {
+pub fn set_info(_x: f32, _y: f32, _z: f32, _angl_x: f32, _angl_y: f32, _angl_z: f32) {
     todo!();
 }
 
-pub fn set_settings(settings: String) {
-
-}
+pub fn set_settings(_settings: String) {}

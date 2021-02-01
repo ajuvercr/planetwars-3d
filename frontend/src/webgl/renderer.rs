@@ -3,13 +3,13 @@ use super::{
     uniform::Uniform,
     Shader,
 };
+use crate::gl::GL;
 use crate::uniform::{UniformUpdate, UniformsHandle};
 use cgmath::{Matrix4, Zero};
 use std::{
     collections::{BTreeSet, HashMap},
     sync::mpsc,
 };
-use crate::gl::GL;
 
 static SHOW_UNIFORMS: bool = false;
 

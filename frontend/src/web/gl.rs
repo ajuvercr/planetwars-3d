@@ -1,18 +1,19 @@
-
-
 use std::ops::Deref;
 
-pub use GLStruct as GL;
 pub use web_sys::WebGlBuffer as GlBuffer;
-pub use web_sys::WebGlShader as GlShader;
 pub use web_sys::WebGlProgram as GlProgram;
+pub use web_sys::WebGlShader as GlShader;
 pub use web_sys::WebGlUniformLocation as GlUniformLocation;
+pub use GLStruct as GL;
 
 use web_sys::WebGlRenderingContext as WebGL;
 
 pub struct GLStruct {
     pub gl: WebGL,
 }
+
+#[derive(Debug)]
+pub struct GlVao {}
 
 impl GLStruct {
     pub const ARRAY_BUFFER: u32 = WebGL::ARRAY_BUFFER;
@@ -34,29 +35,36 @@ impl GLStruct {
 
     pub fn set_f32_buffer_data(&self, target: u32, data: &[f32], type_: u32) {
         let verts = unsafe { js_sys::Float32Array::view(data) };
-        self.gl.buffer_data_with_array_buffer_view(target, &verts, type_);
+        self.gl
+            .buffer_data_with_array_buffer_view(target, &verts, type_);
     }
 
     pub fn set_u16_buffer_data(&self, target: u32, data: &[u16], type_: u32) {
         let verts = unsafe { js_sys::Uint16Array::view(data) };
-        self.gl.buffer_data_with_array_buffer_view(target, &verts, type_);
+        self.gl
+            .buffer_data_with_array_buffer_view(target, &verts, type_);
     }
 
     pub fn set_i32_buffer_data(&self, target: u32, data: &[i32], type_: u32) {
         let verts = unsafe { js_sys::Int32Array::view(data) };
-        self.gl.buffer_data_with_array_buffer_view(target, &verts, type_);
+        self.gl
+            .buffer_data_with_array_buffer_view(target, &verts, type_);
     }
 
     pub fn get_shader_parameter(&self, shader: &GlShader, type_: u32) -> Option<bool> {
-        self.gl
-            .get_shader_parameter(shader, type_)
-            .as_bool()
+        self.gl.get_shader_parameter(shader, type_).as_bool()
     }
 
     pub fn get_program_parameter(&self, program: &GlProgram, type_: u32) -> Option<bool> {
-        self.gl
-            .get_program_parameter(program, type_)
-            .as_bool()
+        self.gl.get_program_parameter(program, type_).as_bool()
+    }
+
+    pub fn create_vertex_array(&self) -> Option<GlVao> {
+        Some(GlVao {})
+    }
+
+    pub fn bind_vertex_array(&self, _vao: Option<&GlVao>) {
+        // Empty
     }
 }
 

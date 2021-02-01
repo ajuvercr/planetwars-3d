@@ -1,5 +1,6 @@
 use cgmath::{Matrix4, Vector3};
 
+use crate::gl::GL;
 use crate::{
     engine::{
         physics::{EntityPhysics, Physics, PhysicsBuilder},
@@ -7,7 +8,6 @@ use crate::{
     },
     renderer::Renderer,
 };
-use crate::gl::GL;
 
 const SHIP_BYTES: &'static [u8] = include_bytes!("../../res/ship.obj");
 

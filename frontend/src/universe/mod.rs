@@ -1,9 +1,9 @@
 mod planet;
-use crate::{engine::Camera, util::fetch};
 use crate::engine::{Object, ObjectConfig, ObjectFactory};
 use crate::models::gen_sphere_faces;
 use crate::uniform::Uniform3f;
 use crate::webgl::renderer::{BatchRenderable, BatchRenderableHandle};
+use crate::{engine::Camera, util::fetch};
 
 use crate::uniform::UniformsHandle;
 use crate::{shader::Shader, webgl::renderer::Renderer};
@@ -13,8 +13,8 @@ use serde::{Deserialize, Serialize};
 
 use cgmath::Vector3;
 
-use serde_json;
 use crate::gl::GL;
+use serde_json;
 
 #[derive(Debug, Clone, Settings, Serialize, Deserialize)]
 pub struct Planets {
@@ -32,9 +32,7 @@ impl Default for Planets {
 impl Planets {
     pub async fn load(location: &str) -> Self {
         let ms = fetch(location).await;
-        match ms.and_then(|s| {
-            serde_json::from_str(&s).map_err(|e| format!("{:?}", e))
-        }) {
+        match ms.and_then(|s| serde_json::from_str(&s).map_err(|e| format!("{:?}", e))) {
             Ok(e) => e,
             Err(e) => {
                 console_log!("Planets failed {:?}", e);

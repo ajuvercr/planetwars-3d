@@ -1,4 +1,4 @@
-use crate::gl::{GL, self};
+use crate::gl::{self, GL};
 
 use cgmath::{Matrix4, Vector4};
 use std::{collections::HashMap, fmt::Debug, ops::Deref, sync::mpsc};

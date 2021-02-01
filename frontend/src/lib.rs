@@ -27,6 +27,8 @@ pub mod delaunay;
 
 pub mod universe;
 
+pub mod scene;
+
 #[cfg(feature = "web")]
 pub mod web;
 #[cfg(feature = "web")]

@@ -1,4 +1,3 @@
-#version 330 core
 varying vec3 v_normal;
 
 uniform float u_time;

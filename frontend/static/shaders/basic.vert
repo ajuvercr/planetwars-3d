@@ -1,4 +1,3 @@
-#version 330 core
 uniform mat4 u_world;
 uniform mat4 u_worldViewProjection;
 

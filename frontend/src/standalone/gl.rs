@@ -1,6 +1,6 @@
 use gl;
 use std;
-use std::ffi::{CString};
+use std::ffi::CString;
 pub struct GLStruct {}
 
 #[derive(Debug)]
@@ -35,8 +35,8 @@ impl GLStruct {
     pub const ELEMENT_ARRAY_BUFFER: u32 = gl::ELEMENT_ARRAY_BUFFER;
     pub const STATIC_DRAW: u32 = gl::STATIC_DRAW;
     pub const TRIANGLES: u32 = gl::TRIANGLES;
-    pub const FLOAT: u32 = std::mem::size_of::<f32>() as u32;
-    pub const UNSIGNED_SHORT: u32 = std::mem::size_of::<u16>() as u32;
+    pub const FLOAT: u32 = gl::FLOAT;
+    pub const UNSIGNED_SHORT: u32 = gl::UNSIGNED_SHORT;
 
     pub const COMPILE_STATUS: u32 = gl::COMPILE_STATUS;
     pub const LINK_STATUS: u32 = gl::LINK_STATUS;
@@ -120,8 +120,7 @@ impl GLStruct {
         offset: i32,
     ) {
         let normalized = if normalized { gl::TRUE } else { gl::FALSE };
-        let boxed = Box::new(offset);
-        let offset: *const i32 = &*boxed;
+        let offset: *const std::ffi::c_void = unsafe {std::mem::transmute(offset as i64) };
         unsafe {
             gl::VertexAttribPointer(
                 id,
@@ -129,7 +128,7 @@ impl GLStruct {
                 type_,
                 normalized,
                 stride, // maybe
-                offset as *const std::ffi::c_void,
+                offset,
             );
         }
     }
@@ -147,10 +146,9 @@ impl GLStruct {
     }
 
     pub fn draw_elements_with_i32(&self, method: u32, count: i32, type_: u32, offset: i32) {
-        let boxed = Box::new(offset);
-        let offset: *const i32 = &*boxed;
+        let offset: *const std::ffi::c_void = unsafe {std::mem::transmute(offset as i64) };
         unsafe {
-            gl::DrawElements(method, count, type_, offset as *const std::ffi::c_void);
+            gl::DrawElements(method, count, type_, offset);
         }
     }
 
@@ -166,6 +164,7 @@ impl GLStruct {
     }
 
     pub fn shader_source(&self, shader: &GlShader, source: &str) {
+        // TODO set version
         let source = CString::new(source).unwrap();
         unsafe {
             gl::ShaderSource(shader.id, 1, &(&source).as_ptr(), std::ptr::null());

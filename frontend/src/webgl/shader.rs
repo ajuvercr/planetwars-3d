@@ -46,6 +46,11 @@ fn create_program(gl: &GL, shaders: Vec<gl::GlShader>) -> Option<gl::GlProgram> 
     Some(program)
 }
 
+#[cfg(feature = "web")]
+const SHADER_VERSION: &'static str = "precision mediump float;";
+#[cfg(feature = "standalone")]
+const SHADER_VERSION: &'static str = "#version 330 core";
+
 #[derive(Clone)]
 pub struct ShaderFactory {
     frag_source: String,
@@ -54,6 +59,8 @@ pub struct ShaderFactory {
 
 impl ShaderFactory {
     pub fn new(frag_source: String, vert_source: String) -> Self {
+        let frag_source = format!("{}\n{}", SHADER_VERSION, frag_source);
+        let vert_source = format!("{}\n{}", SHADER_VERSION, vert_source);
         Self {
             frag_source,
             vert_source,

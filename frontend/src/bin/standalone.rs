@@ -1,8 +1,8 @@
 use frontend::{gl::GL, scene::Scene};
 use futures::executor::block_on;
 
-extern crate sdl2;
 extern crate futures;
+extern crate sdl2;
 
 fn main() -> Result<(), String> {
     let sdl = sdl2::init().unwrap();
@@ -35,6 +35,7 @@ fn main() -> Result<(), String> {
     let scene = Scene::new();
     let mut scene = block_on(scene.init_renderer(&gl))?;
     scene.camera_handle().set_aspect(900 as f32 / 700 as f32);
+    scene.camera_handle().add_position(-100.0, 0.0, 0.0);
 
     let mut event_pump = sdl.event_pump().unwrap();
     'main: loop {
@@ -46,10 +47,10 @@ fn main() -> Result<(), String> {
         }
 
         unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
-        scene.update(&gl, 0.16)?;
+        scene.update(&gl, 0.016)?;
         scene.render_gl(&gl)?;
 
         window.gl_swap_window();

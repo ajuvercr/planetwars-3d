@@ -2,7 +2,7 @@ use crate::scene::Scene;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use crate::engine::{CameraHandle};
+use crate::engine::CameraHandle;
 use crate::gl::GL;
 use web_sys::HtmlCanvasElement;
 
@@ -61,11 +61,13 @@ impl WebGl {
         self.canvas.set_height(height as u32);
         self.gl.viewport(0, 0, width, height);
 
-        self.scene.camera_handle().set_aspect(width as f32 / height as f32);
+        self.scene
+            .camera_handle()
+            .set_aspect(width as f32 / height as f32);
     }
 
     pub async fn init_renderer(self) -> Result<WebGl, JsValue> {
-        let WebGl {scene, gl, canvas} = self;
+        let WebGl { scene, gl, canvas } = self;
 
         // Clear the canvas AND the depth buffer.
         gl.clear(GL::COLOR_BUFFER_BIT | GL::DEPTH_BUFFER_BIT);
@@ -78,7 +80,7 @@ impl WebGl {
         gl.enable(GL::DEPTH_TEST);
 
         let scene = scene.init_renderer(&gl).await?;
-        let mut webgl = Self { gl, scene, canvas};
+        let mut webgl = Self { gl, scene, canvas };
         webgl.resize();
         Ok(webgl)
     }

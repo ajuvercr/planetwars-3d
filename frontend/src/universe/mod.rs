@@ -1,12 +1,12 @@
 mod planet;
 use crate::engine::{Object, ObjectConfig, ObjectFactory};
 use crate::models::gen_sphere_faces;
-use crate::uniform::Uniform3f;
-use crate::webgl::renderer::{BatchRenderable, BatchRenderableHandle};
-use crate::{engine::Camera, util::fetch};
+use crate::engine::rendering::uniform::Uniform3f;
+use crate::engine::rendering::renderer::{BatchRenderable, BatchRenderableHandle};
+use crate::{engine::{Camera, Renderer}, util::fetch};
 
-use crate::uniform::UniformsHandle;
-use crate::{shader::Shader, webgl::renderer::Renderer};
+use crate::engine::rendering::uniform::UniformsHandle;
+use crate::engine::rendering::shader::Shader;
 pub use planet::Planet;
 use pw_derive::Settings;
 use serde::{Deserialize, Serialize};

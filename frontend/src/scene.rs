@@ -8,7 +8,7 @@ use crate::engine::{Object, ObjectConfig, ObjectFactory};
 use crate::gl::GL;
 use crate::util;
 use crate::FpsCounter;
-use crate::{renderer::Renderer, webgl::Shader};
+use crate::{engine::Renderer, engine::rendering::Shader};
 use cgmath::{Matrix4, Vector3};
 
 pub struct Scene {

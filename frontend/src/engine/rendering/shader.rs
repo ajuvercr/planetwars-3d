@@ -1,6 +1,6 @@
 use crate::gl::{self, GL};
 
-use crate::uniform::Uniform;
+use super::uniform::Uniform;
 use std::collections::HashMap;
 
 fn load_shader(gl: &GL, shader_source: &str, shader_type: u32) -> Option<gl::GlShader> {

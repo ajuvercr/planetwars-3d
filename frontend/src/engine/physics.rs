@@ -2,8 +2,8 @@ use super::Entity;
 use std::marker::PhantomData;
 
 use crate::{
-    renderer::Renderer,
-    uniform::{Uniform3f, UniformMat4, UniformsHandle},
+    engine::Renderer,
+    engine::rendering::uniform::{Uniform3f, UniformMat4, UniformsHandle},
 };
 
 pub struct EntityPhysics {

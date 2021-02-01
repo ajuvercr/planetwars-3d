@@ -16,9 +16,6 @@ macro_rules! console_log {
 #[macro_use]
 extern crate add_getters_setters;
 
-mod webgl;
-pub use webgl::*;
-
 pub mod engine;
 
 pub mod models;

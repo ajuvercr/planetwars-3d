@@ -1,9 +1,9 @@
 use super::{Camera, Entity};
-use crate::uniform::{Uniform3f, UniformMat4};
-use crate::webgl::buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout};
-use crate::webgl::renderer::{DefaultRenderable, Renderer};
-use crate::webgl::shader::ShaderFactory;
-use crate::webgl::uniform::UniformsHandle;
+use super::rendering::uniform::{Uniform3f, UniformMat4};
+use super::rendering::buffer::{IndexBuffer, VertexArray, VertexBuffer, VertexBufferLayout};
+use super::rendering::renderer::{DefaultRenderable, Renderer};
+use super::rendering::shader::ShaderFactory;
+use super::rendering::uniform::UniformsHandle;
 
 use crate::gl::GL;
 use std::collections::HashMap;

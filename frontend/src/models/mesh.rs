@@ -4,9 +4,8 @@ use crate::gl::GL;
 use crate::{
     engine::{
         physics::{EntityPhysics, Physics, PhysicsBuilder},
-        Entity, ObjectFactory,
+        Entity, ObjectFactory, Renderer,
     },
-    renderer::Renderer,
 };
 
 const SHIP_BYTES: &'static [u8] = include_bytes!("../../res/ship.obj");

@@ -11,6 +11,9 @@ pub mod objects;
 
 pub use objects::{Object, ObjectConfig, ObjectFactory};
 
+pub mod rendering;
+pub use rendering::renderer::Renderer;
+
 pub type Index = usize;
 pub type Float = f32;
 

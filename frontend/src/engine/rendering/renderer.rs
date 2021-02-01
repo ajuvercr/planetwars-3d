@@ -4,7 +4,7 @@ use super::{
     Shader,
 };
 use crate::gl::GL;
-use crate::uniform::{UniformUpdate, UniformsHandle};
+use super::uniform::{UniformUpdate, UniformsHandle};
 use cgmath::{Matrix4, Zero};
 use std::{
     collections::{BTreeSet, HashMap},

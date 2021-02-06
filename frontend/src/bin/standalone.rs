@@ -1,12 +1,21 @@
-use frontend::{gl::GL, scene::Scene};
+use frontend::{engine::CameraHandle, gl::GL, scene::Scene};
 use futures::executor::block_on;
-
+use sdl2::{event::WindowEvent, video::{SwapInterval, Window}};
+use sdl2::event::Event;
 extern crate futures;
 extern crate sdl2;
 
+fn resize(window: &Window, camera_handle: &CameraHandle) {
+    let (w, h) = window.size();
+    let aspect = w as f32 / h as f32;
+    camera_handle.set_aspect(aspect);
+    unsafe {gl::Viewport(0,0, w as i32, h as i32); }
+}
+
 fn main() -> Result<(), String> {
-    let sdl = sdl2::init().unwrap();
-    let video_subsystem = sdl.video().unwrap();
+    let sdl = sdl2::init()?;
+    let video_subsystem = sdl.video()?;
+    let timer_subsystem = sdl.timer()?;
 
     let gl_attr = video_subsystem.gl_attr();
 
@@ -30,18 +39,40 @@ fn main() -> Result<(), String> {
         gl::Enable(gl::CULL_FACE);
         gl::Enable(gl::DEPTH_TEST);
     }
+    // video_subsystem.gl_set_swap_interval(SwapInterval::Immediate)?;
 
     let gl = GL::new();
     let scene = Scene::new();
     let mut scene = block_on(scene.init_renderer(&gl))?;
-    scene.camera_handle().set_aspect(900 as f32 / 700 as f32);
-    scene.camera_handle().add_position(-100.0, 0.0, 0.0);
+    let camera_handle = scene.camera_handle();
+    camera_handle.add_position(-150.0, 0.0, 0.0);
 
     let mut event_pump = sdl.event_pump().unwrap();
+    let mut last = timer_subsystem.performance_counter();
+
     'main: loop {
+        let delta = {
+            let current = timer_subsystem.performance_counter();
+            let delta = current - last;
+            last = current;
+
+            delta as f64 / 1000000.0
+        };
+
         for event in event_pump.poll_iter() {
             match event {
-                sdl2::event::Event::Quit { .. } => break 'main,
+                Event::Quit { .. } | Event::AppTerminating {..} => break 'main,
+                Event::Window {win_event, ..} => {
+                    match win_event {
+                        WindowEvent::Resized(width, height) => {
+                            resize(&window, &camera_handle);
+
+                            // camera_handle.set_aspect(width as f32 / height as f32);
+                            // unsafe {gl::Viewport(0, 0, width, height); }
+                        }
+                        _ => {}
+                    }
+                }
                 _ => {}
             }
         }
@@ -50,7 +81,7 @@ fn main() -> Result<(), String> {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
 
-        scene.update(&gl, 0.016)?;
+        scene.update(&gl, delta)?;
         scene.render_gl(&gl)?;
 
         window.gl_swap_window();

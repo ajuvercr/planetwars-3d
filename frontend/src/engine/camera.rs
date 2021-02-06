@@ -108,7 +108,7 @@ impl Camera {
     }
 
     fn reset_projection(&mut self) {
-        // self.projection_matrix = frustum(-0.5 * self.aspect, 0.5 * self.aspect, -0.5, 0.5, self.near, self.far);
+        // self.projection_matrix = cgmath::frustum(-0.5 * self.aspect, 0.5 * self.aspect, -0.5, 0.5, self.near, self.far);
         self.projection_matrix = perspective(Deg(45.0), self.aspect, self.near, self.far);
     }
 

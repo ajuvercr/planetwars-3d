@@ -2,8 +2,45 @@ use frontend::{engine::CameraHandle, gl::GL, scene::Scene};
 use futures::executor::block_on;
 use sdl2::{event::WindowEvent, video::{SwapInterval, Window}};
 use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+
 extern crate futures;
 extern crate sdl2;
+
+const MOV_SPEED:f32 = 1000.0;
+const MOUSE_SENTSITIVITY:f32 = 100.0;
+
+#[derive(Debug, Default)]
+struct InputStatus {
+    forwards:  bool,
+    backwards: bool,
+    left: bool,
+    right: bool,
+    up: bool,
+    down: bool,
+}
+
+impl InputStatus {
+    fn update_camera(&self, dt: f32, handle: &CameraHandle) {
+        let mut forward_backward = 0.0;
+        let mut left_right = 0.0;
+        let mut up_down = 0.0;
+        if self.right { left_right += MOV_SPEED * dt};
+        if self.left { left_right  -= MOV_SPEED * dt};
+
+        if self.up { up_down += MOV_SPEED * dt };
+        if self.down { up_down -= MOV_SPEED * dt };
+
+        if self.forwards { forward_backward -= MOV_SPEED * dt };
+        if self.backwards { forward_backward += MOV_SPEED * dt };
+
+        handle.add_position(
+            left_right,
+            up_down,
+            forward_backward,
+        );
+    }
+}
 
 fn resize(window: &Window, camera_handle: &CameraHandle) {
     let (w, h) = window.size();
@@ -41,6 +78,8 @@ fn main() -> Result<(), String> {
     }
     // video_subsystem.gl_set_swap_interval(SwapInterval::Immediate)?;
 
+    let mut input_status = InputStatus::default();
+
     let gl = GL::new();
     let scene = Scene::new();
     let mut scene = block_on(scene.init_renderer(&gl))?;
@@ -49,6 +88,9 @@ fn main() -> Result<(), String> {
 
     let mut event_pump = sdl.event_pump().unwrap();
     let mut last = timer_subsystem.performance_counter();
+
+    let mut window_size= window.size(); // (width, height)
+
 
     'main: loop {
         let delta = {
@@ -65,6 +107,7 @@ fn main() -> Result<(), String> {
                 Event::Window {win_event, ..} => {
                     match win_event {
                         WindowEvent::Resized(width, height) => {
+                            window_size = window.size();
                             resize(&window, &camera_handle);
 
                             // camera_handle.set_aspect(width as f32 / height as f32);
@@ -72,10 +115,37 @@ fn main() -> Result<(), String> {
                         }
                         _ => {}
                     }
+                },
+                Event::KeyDown { keycode: Some(code), ..  } =>{
+                    match code {
+                        Keycode::W => input_status.forwards = true,
+                        Keycode::S => input_status.backwards = true,
+                        Keycode::A => input_status.left = true,
+                        Keycode::D => input_status.right = true,
+                        _ => {}
+                    }
+                },
+                Event::KeyUp { keycode: Some(code), .. } => {
+                    match code {
+                        Keycode::W => input_status.forwards = false,
+                        Keycode::S => input_status.backwards = false,
+                        Keycode::A => input_status.left = false,
+                        Keycode::D => input_status.right = false,
+                        _ => {}
+                    }
+                }
+                Event::MouseMotion{ mousestate, xrel, yrel, .. } => {
+                    if mousestate.left() {
+                        let dx = xrel as f32 / window_size.0 as f32 * MOUSE_SENTSITIVITY;
+                        let dy = yrel as f32 / window_size.1 as f32 * MOUSE_SENTSITIVITY;
+                        camera_handle.add_angle(dy, dx, 0.0);
+                    }
                 }
                 _ => {}
             }
         }
+
+        input_status.update_camera(delta as f32, &camera_handle);
 
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);

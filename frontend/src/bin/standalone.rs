@@ -8,7 +8,7 @@ extern crate futures;
 extern crate sdl2;
 
 const MOV_SPEED:f32 = 1000.0;
-const MOUSE_SENTSITIVITY:f32 = 100.0;
+const MOUSE_SENTSITIVITY:f32 = 50.0;
 
 #[derive(Debug, Default)]
 struct InputStatus {
@@ -25,6 +25,7 @@ impl InputStatus {
         let mut forward_backward = 0.0;
         let mut left_right = 0.0;
         let mut up_down = 0.0;
+
         if self.right { left_right += MOV_SPEED * dt};
         if self.left { left_right  -= MOV_SPEED * dt};
 
@@ -138,7 +139,7 @@ fn main() -> Result<(), String> {
                     if mousestate.left() {
                         let dx = xrel as f32 / window_size.0 as f32 * MOUSE_SENTSITIVITY;
                         let dy = yrel as f32 / window_size.1 as f32 * MOUSE_SENTSITIVITY;
-                        camera_handle.add_angle(dy, dx, 0.0);
+                        camera_handle.add_angle(dy, 0.0, dx);
                     }
                 }
                 _ => {}

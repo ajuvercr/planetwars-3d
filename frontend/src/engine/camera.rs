@@ -1,6 +1,6 @@
 use super::{Entity, Vec3};
 use crate::set_info;
-use cgmath::InnerSpace;
+use cgmath::{InnerSpace};
 use cgmath::Vector4;
 use cgmath::{perspective, prelude::SquareMatrix, Deg, Matrix4, Vector3};
 use std::sync::mpsc;
@@ -118,7 +118,17 @@ impl Camera {
     }
 
     fn world_matrix(&self) -> Matrix4<f32> {
-        Matrix4::from_translation(self.entity.position().into()) * self.entity.mat_rotation()
+        Matrix4::from_translation(self.entity.position().into()) * self.world_rot()
+    }
+
+    fn world_rot(&self) ->Matrix4<f32> {
+        let rot = self.entity.rotation();
+
+        let roll_r = Matrix4::from_angle_x(Deg(rot.x));
+        let yaw_r = Matrix4::from_angle_y(Deg(rot.y));
+        let pitch_r = Matrix4::from_angle_y(Deg(rot.z));
+
+        pitch_r * roll_r * yaw_r
     }
 
     pub fn handle(&self) -> CameraHandle {
@@ -143,7 +153,7 @@ impl Camera {
                 }
                 Ok(CameraEvent::AddPosition(delta)) => {
                     let delta: Vector4<f32> = delta.extend(1.0);
-                    let rotation = self.entity.mat_rotation();
+                    let rotation = self.world_rot();
                     let delta: Vec3 = (rotation * delta).truncate().into();
                     self.entity.set_position(self.entity.position() + delta);
                     reset_world = true;
